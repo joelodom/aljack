@@ -1,6 +1,8 @@
 #
 # a PE analyzer by Joel Odom
 #
+# Comment that resembles C code is probably from winnt.h
+#
 
 import sys
 
@@ -10,6 +12,10 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
   raise Exception(
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
+
+#
+# Utility functions to read structured data
+#
 
 def read_exact_number_of_bytes(f, n):
   '''
@@ -22,6 +28,8 @@ def read_exact_number_of_bytes(f, n):
 
   return bytes
 
+def read_one_byte_int(f):
+  return int(read_exact_number_of_bytes(f, 1)[0])
 
 def read_two_byte_int_little_endian(f):
   '''
@@ -37,7 +45,9 @@ def read_four_byte_int_little_endian(f):
   bytes = read_exact_number_of_bytes(f, 4)
   return bytes[0] + 256*bytes[1] + 65536*bytes[2] + 16777216*bytes[3]
 
-
+#
+#
+#
 
 class DOSHeader:
   pass
@@ -140,16 +150,61 @@ def machine_to_str(machine):
   #define IMAGE_FILE_MACHINE_M32R              0x9041  // M32R little-endian
   #define IMAGE_FILE_MACHINE_CEE               0xC0EE
 
-  if machine == 0x14d:
-    return 'Intel i860'
-  elif machine == 0x14c:
-    return 'Intel I386'
-  elif machine == 0x162:
-    return 'MIPS R3000'
-  elif machine == 0x166:
-    return 'MIPS R4000'
-  elif machine == 0x183:
-    return 'DEC Alpha AXP'
+
+  if machine == 0x014c:
+    return 'IMAGE_FILE_MACHINE_I386'
+  if machine == 0x0162:
+    return 'IMAGE_FILE_MACHINE_R3000'
+  if machine == 0x0166:
+    return 'IMAGE_FILE_MACHINE_R4000'
+  if machine == 0x0168:
+    return 'IMAGE_FILE_MACHINE_R10000'
+  if machine == 0x0169:
+    return 'IMAGE_FILE_MACHINE_WCEMIPSV2'
+  if machine == 0x0184:
+    return 'IMAGE_FILE_MACHINE_ALPHA'
+  if machine == 0x01a2:
+    return 'IMAGE_FILE_MACHINE_SH3'
+  if machine == 0x01a3:
+    return 'IMAGE_FILE_MACHINE_SH3DSP'
+  if machine == 0x01a4:
+    return 'IMAGE_FILE_MACHINE_SH3E'
+  if machine == 0x01a6:
+    return 'IMAGE_FILE_MACHINE_SH4'
+  if machine == 0x01a8:
+    return 'IMAGE_FILE_MACHINE_SH5'
+  if machine == 0x01c0:
+    return 'IMAGE_FILE_MACHINE_ARM'
+  if machine == 0x01c2:
+    return 'IMAGE_FILE_MACHINE_THUMB'
+  if machine == 0x01d3:
+    return 'IMAGE_FILE_MACHINE_AM33'
+  if machine == 0x01f0:
+    return 'IMAGE_FILE_MACHINE_POWERPC'
+  if machine == 0x01f1:
+    return 'IMAGE_FILE_MACHINE_POWERPCFP'
+  if machine == 0x0200:
+    return 'IMAGE_FILE_MACHINE_IA64'
+  if machine == 0x0266:
+    return 'IMAGE_FILE_MACHINE_MIPS16'
+  if machine == 0x0284:
+    return 'IMAGE_FILE_MACHINE_ALPHA64'
+  if machine == 0x0366:
+    return 'IMAGE_FILE_MACHINE_MIPSFPU'
+  if machine == 0x0466:
+    return 'IMAGE_FILE_MACHINE_MIPSFPU16'
+  if machine == 0x0520:
+    return 'IMAGE_FILE_MACHINE_TRICORE'
+  if machine == 0x0cef:
+    return 'IMAGE_FILE_MACHINE_CEF'
+  if machine == 0x0ebc:
+    return 'IMAGE_FILE_MACHINE_EBC'
+  if machine == 0x8664:
+    return 'IMAGE_FILE_MACHINE_AMD64'
+  if machine == 0x9041:
+    return 'IMAGE_FILE_MACHINE_M32R'
+  if machine == 0xc0ee:
+    return 'IMAGE_FILE_MACHINE_CEE'
 
   return 'Unknown'
 
@@ -176,7 +231,40 @@ def characteristics_to_str(characteristics):
   #define IMAGE_FILE_UP_SYSTEM_ONLY            0x4000  // File should only be run on a UP machine
   #define IMAGE_FILE_BYTES_REVERSED_HI         0x8000  // Bytes of machine word are reversed.
 
-  return 'TODO'
+  chars = []
+
+  if characteristics & 0x0001:
+    chars.append('IMAGE_FILE_RELOCS_STRIPPED')
+  if characteristics & 0x0002:
+    chars.append('IMAGE_FILE_EXECUTABLE_IMAGE')
+  if characteristics & 0x0004:
+    chars.append('IMAGE_FILE_LINE_NUMS_STRIPPED')
+  if characteristics & 0x0008:
+    chars.append('IMAGE_FILE_LOCAL_SYMS_STRIPPED')
+  if characteristics & 0x0010:
+    chars.append('IMAGE_FILE_AGGRESIVE_WS_TRIM')
+  if characteristics & 0x0020:
+    chars.append('IMAGE_FILE_LARGE_ADDRESS_AWARE')
+  if characteristics & 0x0080:
+    chars.append('IMAGE_FILE_BYTES_REVERSED_LO')
+  if characteristics & 0x0100:
+    chars.append('IMAGE_FILE_32BIT_MACHINE')
+  if characteristics & 0x0200:
+    chars.append('IMAGE_FILE_DEBUG_STRIPPED')
+  if characteristics & 0x0400:
+    chars.append('IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP')
+  if characteristics & 0x0800:
+    chars.append('IMAGE_FILE_NET_RUN_FROM_SWAP')
+  if characteristics & 0x1000:
+    chars.append('IMAGE_FILE_SYSTEM')
+  if characteristics & 0x2000:
+    chars.append('IMAGE_FILE_DLL')
+  if characteristics & 0x4000:
+    chars.append('IMAGE_FILE_UP_SYSTEM_ONLY')
+  if characteristics & 0x8000:
+    chars.append('IMAGE_FILE_BYTES_REVERSED_HI')
+
+  return ' '.join(chars)
 
 
 class PEHeader:
@@ -187,7 +275,7 @@ class ImageFileHeader:
   def __str__(self):
 
     return (
-      'Machine: %s (%s)\n'
+      'Machine: %s (0x%04x)\n'
       'Number of sections: %s\n'
       'Timestamp: %s (%s)\n'
       'Symbol table offset: %s\n'
@@ -203,6 +291,14 @@ class ImageFileHeader:
       self.size_of_optional_header,
       characteristics_to_str(self.characteristics), self.characteristics
       ))
+
+class ImageOptionalHeader:
+  pass
+
+class ImageDataDirectory:
+  pass
+
+IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
 
 def read_pe_header(f):
   '''
@@ -247,8 +343,118 @@ def read_pe_header(f):
   pe_header.image_file_header.size_of_optional_header = read_two_byte_int_little_endian(f)
   pe_header.image_file_header.characteristics = read_two_byte_int_little_endian(f)
 
+  # read the optional header
+
+  pe_header.image_optional_header = ImageOptionalHeader()
+  position_before_optional_header = f.tell()
+
+  #typedef struct _IMAGE_OPTIONAL_HEADER {
+  #    //
+  #    // Standard fields.
+  #    //
+  #
+  #    WORD    Magic;
+  #    BYTE    MajorLinkerVersion;
+  #    BYTE    MinorLinkerVersion;
+  #    DWORD   SizeOfCode;
+  #    DWORD   SizeOfInitializedData;
+  #    DWORD   SizeOfUninitializedData;
+  #    DWORD   AddressOfEntryPoint;
+  #    DWORD   BaseOfCode;
+  #    DWORD   BaseOfData;
+  #
+  #    //
+  #    // NT additional fields.
+  #    //
+  #
+  #    DWORD   ImageBase;
+  #    DWORD   SectionAlignment;
+  #    DWORD   FileAlignment;
+  #    WORD    MajorOperatingSystemVersion;
+  #    WORD    MinorOperatingSystemVersion;
+  #    WORD    MajorImageVersion;
+  #    WORD    MinorImageVersion;
+  #    WORD    MajorSubsystemVersion;
+  #    WORD    MinorSubsystemVersion;
+  #    DWORD   Win32VersionValue;
+  #    DWORD   SizeOfImage;
+  #    DWORD   SizeOfHeaders;
+  #    DWORD   CheckSum;
+  #    WORD    Subsystem;
+  #    WORD    DllCharacteristics;
+  #    DWORD   SizeOfStackReserve;
+  #    DWORD   SizeOfStackCommit;
+  #    DWORD   SizeOfHeapReserve;
+  #    DWORD   SizeOfHeapCommit;
+  #    DWORD   LoaderFlags;
+  #    DWORD   NumberOfRvaAndSizes;
+  #    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+  #} IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
+
+  pe_header.image_optional_header.magic = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.major_linker_version = read_one_byte_int(f)
+  pe_header.image_optional_header.minor_linker_version = read_one_byte_int(f)
+  pe_header.image_optional_header.size_of_code = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_initialized_data = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_uninitialized_data = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.address_of_entry_point = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.base_of_code = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.base_of_data = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.image_base = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.section_alignment = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.file_alignment = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.major_operating_system_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.minor_operating_system_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.major_image_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.minor_image_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.major_subsystem_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.minor_subsystem_version = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.win32_version_value = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_image = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_headers = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.check_sum = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.subsystem = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.dll_characteristics = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_stack_reserve = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_stack_commit = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_heap_reserve = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.size_of_heap_commit = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.loader_flags = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.number_of_rva_and_sizes = read_four_byte_int_little_endian(f)
+
+  pe_header.image_optional_header.data_directory = []
+
+  for i in range(IMAGE_NUMBEROF_DIRECTORY_ENTRIES):
+    image_data_directory = ImageDataDirectory()
+
+    #typedef struct _IMAGE_DATA_DIRECTORY {
+    #    DWORD   VirtualAddress;
+    #    DWORD   Size;
+    #} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
+
+    image_data_directory.virtual_address = read_four_byte_int_little_endian(f)
+    image_data_directory.size = read_four_byte_int_little_endian(f)
+
+    pe_header.image_optional_header.data_directory.append(image_data_directory)
+
+  # sanity check position against size_of_optional_header
+
+  position_after_optional_header = f.tell()
+
+  optional_header_bytes_read = position_after_optional_header - position_before_optional_header
+  if optional_header_bytes_read != pe_header.image_file_header.size_of_optional_header:
+    raise Exception('optional header size check failed (read %s bytes)'
+      % optional_header_bytes_read)
+
   return pe_header
 
+
+def read_section_table(f):
+  '''
+  Reads the section table.
+
+  The file position should be queued to the table to read.
+  '''
 
 PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
@@ -262,3 +468,6 @@ with open(PE_FILE, 'rb') as f:
   pe_header = read_pe_header(f)
 
   print(pe_header)
+
+  # read the section table
+  read_section_table(f)
