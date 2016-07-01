@@ -45,6 +45,15 @@ def read_four_byte_int_little_endian(f):
   bytes = read_exact_number_of_bytes(f, 4)
   return bytes[0] + 256*bytes[1] + 65536*bytes[2] + 16777216*bytes[3]
 
+def read_null_terminated_string(f, bytes_to_read):
+  '''
+  Reads a string (assumes ASCII encoding).
+  '''
+
+  bytes = read_exact_number_of_bytes(f, bytes_to_read)
+  bytes = bytes[:bytes.find(b'\0')]
+  return bytes.decode('ascii')
+
 #
 #
 #
@@ -449,12 +458,51 @@ def read_pe_header(f):
   return pe_header
 
 
-def read_section_table(f):
+class ImageSectionHeader:
+  pass
+
+IMAGE_SIZEOF_SHORT_NAME = 8
+
+def read_section_header(f):
   '''
-  Reads the section table.
+  Reads a section header.
 
   The file position should be queued to the table to read.
   '''
+
+  section_header = ImageSectionHeader()
+
+  #typedef struct _IMAGE_SECTION_HEADER {
+  #    BYTE    Name[IMAGE_SIZEOF_SHORT_NAME];
+  #    union {
+  #            DWORD   PhysicalAddress;
+  #            DWORD   VirtualSize;
+  #    } Misc;
+  #    DWORD   VirtualAddress;
+  #    DWORD   SizeOfRawData;
+  #    DWORD   PointerToRawData;
+  #    DWORD   PointerToRelocations;
+  #    DWORD   PointerToLinenumbers;
+  #    WORD    NumberOfRelocations;
+  #    WORD    NumberOfLinenumbers;
+  #    DWORD   Characteristics;
+  #} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+
+  section_header.name = read_null_terminated_string(f, IMAGE_SIZEOF_SHORT_NAME)
+  section_header.misc = read_four_byte_int_little_endian(f)
+  section_header.virtual_address = read_four_byte_int_little_endian(f)
+  section_header.size_of_raw_data = read_four_byte_int_little_endian(f)
+  section_header.pointer_to_raw_data = read_four_byte_int_little_endian(f)
+  section_header.pointer_to_relocations = read_four_byte_int_little_endian(f)
+  section_header.pointer_to_linenumbers = read_four_byte_int_little_endian(f)
+  section_header.number_of_relocations = read_two_byte_int_little_endian(f)
+  section_header.number_of_linenumbers = read_two_byte_int_little_endian(f)
+  section_header.characteristics = read_four_byte_int_little_endian(f)
+
+  return section_header
+
+
+
 
 PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
@@ -470,4 +518,9 @@ with open(PE_FILE, 'rb') as f:
   print(pe_header)
 
   # read the section table
-  read_section_table(f)
+  print('Sections: ')
+  for i in range(pe_header.image_file_header.number_of_sections):
+    section_header = read_section_header(f)
+    print(section_header.name)
+
+
