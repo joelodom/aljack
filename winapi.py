@@ -14,6 +14,10 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
   raise Exception(
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
+#
+# Windows API wrappers
+#
+
 nullptr = None
 
 #define MB_OK                       0x00000000L
@@ -75,7 +79,7 @@ ULONG_PTR = ctypes.wintypes.PULONG
 #    } EXCEPTION_RECORD;
 
 class EXCEPTION_RECORD(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('ExceptionCode', ctypes.wintypes.DWORD),
     ('ExceptionFlags', ctypes.wintypes.DWORD),
     #TODO ('ExceptionRecord', ctypes.POINTER(EXCEPTION_RECORD)),
@@ -103,7 +107,7 @@ LPTHREAD_START_ROUTINE = ctypes.POINTER(PTHREAD_START_ROUTINE)
 #} CREATE_THREAD_DEBUG_INFO, *LPCREATE_THREAD_DEBUG_INFO;
 
 class CREATE_THREAD_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('hThread', ctypes.wintypes.HANDLE),
     ('lpThreadLocalBase', ctypes.wintypes.LPVOID),
     ('lpStartAddress', LPTHREAD_START_ROUTINE)
@@ -123,7 +127,7 @@ class CREATE_THREAD_DEBUG_INFO(ctypes.Structure):
 #} CREATE_PROCESS_DEBUG_INFO, *LPCREATE_PROCESS_DEBUG_INFO;
 
 class CREATE_PROCESS_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('hFile', ctypes.wintypes.HANDLE),
     ('hProcess', ctypes.wintypes.HANDLE),
     ('hThread', ctypes.wintypes.HANDLE),
@@ -141,7 +145,7 @@ class CREATE_PROCESS_DEBUG_INFO(ctypes.Structure):
 #} EXIT_THREAD_DEBUG_INFO, *LPEXIT_THREAD_DEBUG_INFO;
 
 class EXIT_THREAD_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('dwExitCode', ctypes.wintypes.DWORD)
   ]
 
@@ -150,7 +154,7 @@ class EXIT_THREAD_DEBUG_INFO(ctypes.Structure):
 #} EXIT_PROCESS_DEBUG_INFO, *LPEXIT_PROCESS_DEBUG_INFO;
 
 class EXIT_PROCESS_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('dwExitCode', ctypes.wintypes.DWORD)
   ]
 
@@ -164,7 +168,7 @@ class EXIT_PROCESS_DEBUG_INFO(ctypes.Structure):
 #} LOAD_DLL_DEBUG_INFO, *LPLOAD_DLL_DEBUG_INFO;
 
 class LOAD_DLL_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('hFile', ctypes.wintypes.HANDLE),
     ('lpBaseOfDll', ctypes.wintypes.LPVOID),
     ('dwDebugInfoFileOffset', ctypes.wintypes.DWORD),
@@ -178,7 +182,7 @@ class LOAD_DLL_DEBUG_INFO(ctypes.Structure):
 #} UNLOAD_DLL_DEBUG_INFO, *LPUNLOAD_DLL_DEBUG_INFO;
 
 class UNLOAD_DLL_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('lpBaseOfDll', ctypes.wintypes.LPVOID)
   ]
 
@@ -189,7 +193,7 @@ class UNLOAD_DLL_DEBUG_INFO(ctypes.Structure):
 #} OUTPUT_DEBUG_STRING_INFO, *LPOUTPUT_DEBUG_STRING_INFO;
 
 class OUTPUT_DEBUG_STRING_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('lpDebugStringData', ctypes.wintypes.LPSTR),
     ('fUnicode', ctypes.wintypes.WORD),
     ('nDebugStringLength', ctypes.wintypes.WORD)
@@ -201,7 +205,7 @@ class OUTPUT_DEBUG_STRING_INFO(ctypes.Structure):
 #} RIP_INFO, *LPRIP_INFO;
 
 class RIP_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('dwError', ctypes.wintypes.DWORD),
     ('dwType', ctypes.wintypes.DWORD)
   ]
@@ -212,7 +216,7 @@ class RIP_INFO(ctypes.Structure):
 #} EXCEPTION_DEBUG_INFO, *LPEXCEPTION_DEBUG_INFO;
 
 class EXCEPTION_DEBUG_INFO(ctypes.Structure):
-  __fields__ = [
+  _fields_ = [
     ('ExceptionRecord', EXCEPTION_RECORD),
     ('dwFirstChance', ctypes.wintypes.DWORD)
   ]
@@ -236,7 +240,7 @@ class EXCEPTION_DEBUG_INFO(ctypes.Structure):
 
 class DEBUG_EVENT(ctypes.Structure):
   class u(ctypes.Union):
-    __fields__ = [
+    _fields_ = [
       ('Exception', EXCEPTION_DEBUG_INFO),
       ('CreateThread', CREATE_THREAD_DEBUG_INFO),
       ('CreateProcessInfo', CREATE_PROCESS_DEBUG_INFO),
@@ -248,7 +252,7 @@ class DEBUG_EVENT(ctypes.Structure):
       ('RipInfo', RIP_INFO)
     ]
 
-  __fields__ = [
+  _fields_ = [
     ('dwDebugEventCode', ctypes.wintypes.DWORD),
     ('dwProcessId', ctypes.wintypes.DWORD),
     ('dwThreadId', ctypes.wintypes.DWORD),
@@ -256,6 +260,26 @@ class DEBUG_EVENT(ctypes.Structure):
   ]
 
 LPDEBUG_EVENT = ctypes.POINTER(DEBUG_EVENT)
+
+#define EXCEPTION_DEBUG_EVENT       1
+#define CREATE_THREAD_DEBUG_EVENT   2
+#define CREATE_PROCESS_DEBUG_EVENT  3
+#define EXIT_THREAD_DEBUG_EVENT     4
+#define EXIT_PROCESS_DEBUG_EVENT    5
+#define LOAD_DLL_DEBUG_EVENT        6
+#define UNLOAD_DLL_DEBUG_EVENT      7
+#define OUTPUT_DEBUG_STRING_EVENT   8
+#define RIP_EVENT                   9
+
+EXCEPTION_DEBUG_EVENT = 1
+CREATE_THREAD_DEBUG_EVENT = 2
+CREATE_PROCESS_DEBUG_EVENT = 3
+EXIT_THREAD_DEBUG_EVENT = 4
+EXIT_PROCESS_DEBUG_EVENT = 5
+LOAD_DLL_DEBUG_EVENT = 6
+UNLOAD_DLL_DEBUG_EVENT = 7
+OUTPUT_DEBUG_STRING_EVENT = 8
+RIP_EVENT = 9
 
 #WINBASEAPI
 #BOOL
@@ -268,3 +292,43 @@ LPDEBUG_EVENT = ctypes.POINTER(DEBUG_EVENT)
 WaitForDebugEvent = ctypes.windll.kernel32.WaitForDebugEvent
 WaitForDebugEvent.restype = ctypes.wintypes.BOOL
 WaitForDebugEvent.argtypes = [ LPDEBUG_EVENT, ctypes.wintypes.DWORD ]
+
+#define INFINITE            0xFFFFFFFF  // Infinite timeout
+
+INFINITE = 0Xffffffff
+
+#WINBASEAPI
+#BOOL
+#WINAPI
+#DebugSetProcessKillOnExit(
+#    __in BOOL KillOnExit
+#    );
+
+DebugSetProcessKillOnExit = ctypes.windll.kernel32.DebugSetProcessKillOnExit
+DebugSetProcessKillOnExit.restype = ctypes.wintypes.BOOL
+DebugSetProcessKillOnExit.argtypes = [ ctypes.wintypes.BOOL ]
+
+#
+# Utility functions
+#
+
+def debug_event_code_to_str(c):
+  if c == EXCEPTION_DEBUG_EVENT:
+    return 'EXCEPTION_DEBUG_EVENT'
+  if c == CREATE_THREAD_DEBUG_EVENT:
+    return 'CREATE_THREAD_DEBUG_EVENT'
+  if c == CREATE_PROCESS_DEBUG_EVENT:
+    return 'CREATE_PROCESS_DEBUG_EVENT'
+  if c == EXIT_THREAD_DEBUG_EVENT:
+    return 'EXIT_THREAD_DEBUG_EVENT'
+  if c == EXIT_PROCESS_DEBUG_EVENT:
+    return 'EXIT_PROCESS_DEBUG_EVENT'
+  if c == LOAD_DLL_DEBUG_EVENT:
+    return 'LOAD_DLL_DEBUG_EVENT'
+  if c == UNLOAD_DLL_DEBUG_EVENT:
+    return 'UNLOAD_DLL_DEBUG_EVENT'
+  if c == OUTPUT_DEBUG_STRING_EVENT:
+    return 'OUTPUT_DEBUG_STRING_EVENT'
+  if c == RIP_EVENT:
+    return 'RIP_EVENT'
+  return 'Unknown (%s)' % c

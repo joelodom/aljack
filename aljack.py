@@ -6,6 +6,7 @@
 
 import sys
 import winapi
+import ctypes
 
 # start with a Python version check
 
@@ -531,14 +532,26 @@ with open(PE_FILE, 'rb') as f:
 
 winapi.MessageBox(winapi.nullptr, 'foo', 'faa', winapi.MB_OK)
 
-DEBUGEE_PID = 4468
+DEBUGEE_PID = 6932
 
 success = winapi.DebugActiveProcess(DEBUGEE_PID)
 if not success:
-  raise Exception('failed to attach debugger')
-print(success)
+  raise Exception('DebugActiveProcess failed')
+
+success = winapi.DebugSetProcessKillOnExit(0)
+if not success:
+  raise Exception('DebugSetProcessKillOnExit failed')
+
+debug_event = winapi.DEBUG_EVENT()
+success = winapi.WaitForDebugEvent(ctypes.pointer(debug_event), winapi.INFINITE)
+if not success:
+  raise Exception('WaitForDebugEvent failed')
+
+debug_event_code = debug_event.dwDebugEventCode
+print(winapi.debug_event_code_to_str(debug_event_code))
 
 success = winapi.DebugActiveProcessStop(DEBUGEE_PID)
 if not success:
-  raise Exception('failed to detach debugger')
-print(success)
+  raise Exception('DebugActiveProcessStop failed')
+
+print('Done.')
