@@ -1,10 +1,12 @@
 #
-# a PE analyzer by Joel Odom
+# A PE analyzer by Joel Odom
 #
-# Comment that resembles C code is probably from winnt.h
+# Comment that resembles C code are probably snippets from Windows header files
 #
 
 import sys
+import ctypes
+import ctypes.wintypes
 
 # start with a Python version check
 
@@ -55,7 +57,7 @@ def read_null_terminated_string(f, bytes_to_read):
   return bytes.decode('ascii')
 
 #
-#
+# Code to handle PE reading and parsing
 #
 
 class DOSHeader:
@@ -523,4 +525,61 @@ with open(PE_FILE, 'rb') as f:
     section_header = read_section_header(f)
     print(section_header.name)
 
+#
+# Code to debug a runnnig process
+#
 
+class winapi:
+  nullptr = None
+
+#WINBASEAPI
+#BOOL
+#WINAPI
+#DebugActiveProcess(
+#    __in DWORD dwProcessId
+#    );
+winapi.DebugActiveProcess = ctypes.windll.kernel32.DebugActiveProcess
+winapi.DebugActiveProcess.restype = ctypes.wintypes.BOOL
+winapi.DebugActiveProcess.argtypes = [ ctypes.wintypes.DWORD ]
+
+#WINBASEAPI
+#BOOL
+#WINAPI
+#DebugActiveProcessStop(
+#    __in DWORD dwProcessId
+#    );
+winapi.DebugActiveProcessStop = ctypes.windll.kernel32.DebugActiveProcessStop
+winapi.DebugActiveProcessStop.restype = ctypes.wintypes.BOOL
+winapi.DebugActiveProcessStop.argtypes = [ ctypes.wintypes.DWORD ]
+
+
+#WINUSERAPI
+#int
+#WINAPI
+#MessageBoxW(
+#    __in_opt HWND hWnd,
+#    __in_opt LPCWSTR lpText,
+#    __in_opt LPCWSTR lpCaption,
+#    __in UINT uType);
+winapi.MessageBox = ctypes.windll.user32.MessageBoxW
+winapi.MessageBox.restype = ctypes.c_int
+winapi.MessageBox.argtypes = [ ctypes.wintypes.HWND, ctypes.wintypes.LPCWSTR,
+  ctypes.wintypes.LPCWSTR, ctypes.wintypes.UINT ]
+
+winapi.MessageBox(winapi.nullptr, 'foo', 'faa', 0)
+
+#
+# Code to debug a runnnig process
+#
+
+DEBUGEE_PID = 4468
+
+success = winapi.DebugActiveProcess(DEBUGEE_PID)
+if not success:
+  raise Exception('failed to attach debugger')
+print(success)
+
+success = winapi.DebugActiveProcessStop(DEBUGEE_PID)
+if not success:
+  raise Exception('failed to detach debugger')
+print(success)
