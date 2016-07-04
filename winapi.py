@@ -407,6 +407,10 @@ LocalFree = ctypes.windll.kernel32.LocalFree
 LocalFree.restype = ctypes.wintypes.HLOCAL
 LocalFree.argtypes = [ ctypes.wintypes.HLOCAL ]
 
+#define ERROR_SEM_TIMEOUT                121L
+
+ERROR_SEM_TIMEOUT = 121
+
 #
 # Utility functions
 #

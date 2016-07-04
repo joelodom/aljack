@@ -541,9 +541,13 @@ try:
   if not winapi.DebugSetProcessKillOnExit(0):
     raise Exception('DebugSetProcessKillOnExit failed')
 
-  while True:
+  while True: # debugger loop
+    print('Waiting...')
+
     debug_event = winapi.DEBUG_EVENT()
-    if not winapi.WaitForDebugEvent(ctypes.pointer(debug_event), 1000):
+    if not winapi.WaitForDebugEvent(ctypes.pointer(debug_event), winapi.INFINITE):
+      #if winapi.GetLastError() == winapi.ERROR_SEM_TIMEOUT:
+      #  continue
       raise Exception('WaitForDebugEvent failed')
 
     print('Debug Event:')
