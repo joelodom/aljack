@@ -21,7 +21,28 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
 nullptr = None
 
 #define MB_OK                       0x00000000L
+#define MB_OKCANCEL                 0x00000001L
+#define MB_ABORTRETRYIGNORE         0x00000002L
+#define MB_YESNOCANCEL              0x00000003L
+#define MB_YESNO                    0x00000004L
+#define MB_RETRYCANCEL              0x00000005L
+#define MB_CANCELTRYCONTINUE        0x00000006L
+#define MB_ICONHAND                 0x00000010L
+#define MB_ICONQUESTION             0x00000020L
+#define MB_ICONEXCLAMATION          0x00000030L
+#define MB_ICONASTERISK             0x00000040L
+
 MB_OK = 0x00000000
+MB_OKCANCEL = 0x00000001
+MB_ABORTRETRYIGNORE = 0x00000002
+MB_YESNOCANCEL = 0x00000003
+MB_YESNO = 0x00000004
+MB_RETRYCANCEL = 0x00000005
+MB_CANCELTRYCONTINUE = 0x00000006
+MB_ICONHAND = 0x00000010
+MB_ICONQUESTION = 0x00000020
+MB_ICONEXCLAMATION = 0x00000030
+MB_ICONASTERISK = 0x00000040
 
 #typedef void *PVOID;
 PVOID = ctypes.c_void_p
@@ -308,27 +329,115 @@ DebugSetProcessKillOnExit = ctypes.windll.kernel32.DebugSetProcessKillOnExit
 DebugSetProcessKillOnExit.restype = ctypes.wintypes.BOOL
 DebugSetProcessKillOnExit.argtypes = [ ctypes.wintypes.BOOL ]
 
+#define DBG_EXCEPTION_HANDLED            ((DWORD   )0x00010001L)
+#define DBG_CONTINUE                     ((DWORD   )0x00010002L)
+
+DBG_EXCEPTION_HANDLED = 0x00010001
+DBG_CONTINUE = 0x00010002
+
+#WINBASEAPI
+#BOOL
+#WINAPI
+#ContinueDebugEvent(
+#    __in DWORD dwProcessId,
+#    __in DWORD dwThreadId,
+#    __in DWORD dwContinueStatus
+#    );
+
+ContinueDebugEvent = ctypes.windll.kernel32.ContinueDebugEvent
+ContinueDebugEvent.restype = ctypes.wintypes.BOOL
+ContinueDebugEvent.argtypes = [ ctypes.wintypes.DWORD, ctypes.wintypes.DWORD,
+  ctypes.wintypes.DWORD ]
+
+#WINBASEAPI
+#__checkReturn
+#DWORD
+#WINAPI
+#GetLastError(
+#    VOID
+#    );
+
+GetLastError = ctypes.windll.kernel32.GetLastError
+GetLastError.restype = ctypes.wintypes.DWORD
+GetLastError.argtypes = [ ]
+
+#WINBASEAPI
+#DWORD
+#WINAPI
+#FormatMessageW(
+#    __in     DWORD dwFlags,
+#    __in_opt LPCVOID lpSource,
+#    __in     DWORD dwMessageId,
+#    __in     DWORD dwLanguageId,
+#    __out    LPWSTR lpBuffer,
+#    __in     DWORD nSize,
+#    __in_opt va_list *Arguments
+#    );
+
+FormatMessage = ctypes.windll.kernel32.FormatMessageW
+FormatMessage.restype = ctypes.wintypes.DWORD
+FormatMessage.argtypes = [ ctypes.wintypes.DWORD, ctypes.wintypes.LPCVOID, ctypes.wintypes.DWORD,
+  ctypes.wintypes.DWORD, ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD,
+  ctypes.wintypes.LPVOID ] # doesn't support the optional argument list
+
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER 0x00000100
+#define FORMAT_MESSAGE_IGNORE_INSERTS  0x00000200
+#define FORMAT_MESSAGE_FROM_STRING     0x00000400
+#define FORMAT_MESSAGE_FROM_HMODULE    0x00000800
+#define FORMAT_MESSAGE_FROM_SYSTEM     0x00001000
+#define FORMAT_MESSAGE_ARGUMENT_ARRAY  0x00002000
+#define FORMAT_MESSAGE_MAX_WIDTH_MASK  0x000000FF
+
+FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
+FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
+FORMAT_MESSAGE_FROM_STRING = 0x00000400
+FORMAT_MESSAGE_FROM_HMODULE = 0x00000800
+FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
+FORMAT_MESSAGE_ARGUMENT_ARRAY = 0x00002000
+FORMAT_MESSAGE_MAX_WIDTH_MASK = 0x000000FF
+
+
 #
 # Utility functions
 #
 
-def debug_event_code_to_str(c):
-  if c == EXCEPTION_DEBUG_EVENT:
+def debug_event_code_to_str(debug_event_code):
+  if debug_event_code == EXCEPTION_DEBUG_EVENT:
     return 'EXCEPTION_DEBUG_EVENT'
-  if c == CREATE_THREAD_DEBUG_EVENT:
+  if debug_event_code == CREATE_THREAD_DEBUG_EVENT:
     return 'CREATE_THREAD_DEBUG_EVENT'
-  if c == CREATE_PROCESS_DEBUG_EVENT:
+  if debug_event_code == CREATE_PROCESS_DEBUG_EVENT:
     return 'CREATE_PROCESS_DEBUG_EVENT'
-  if c == EXIT_THREAD_DEBUG_EVENT:
+  if debug_event_code == EXIT_THREAD_DEBUG_EVENT:
     return 'EXIT_THREAD_DEBUG_EVENT'
-  if c == EXIT_PROCESS_DEBUG_EVENT:
+  if debug_event_code == EXIT_PROCESS_DEBUG_EVENT:
     return 'EXIT_PROCESS_DEBUG_EVENT'
-  if c == LOAD_DLL_DEBUG_EVENT:
+  if debug_event_code == LOAD_DLL_DEBUG_EVENT:
     return 'LOAD_DLL_DEBUG_EVENT'
-  if c == UNLOAD_DLL_DEBUG_EVENT:
+  if debug_event_code == UNLOAD_DLL_DEBUG_EVENT:
     return 'UNLOAD_DLL_DEBUG_EVENT'
-  if c == OUTPUT_DEBUG_STRING_EVENT:
+  if debug_event_code == OUTPUT_DEBUG_STRING_EVENT:
     return 'OUTPUT_DEBUG_STRING_EVENT'
-  if c == RIP_EVENT:
+  if debug_event_code == RIP_EVENT:
     return 'RIP_EVENT'
   return 'Unknown (%s)' % c
+
+def debug_event_to_str(debug_event):
+  return '%s' % debug_event_code_to_str(debug_event.dwDebugEventCode)
+
+def get_last_error_string():
+  error = GetLastError()
+  message = ctypes.wintypes.LPWSTR()
+  status = FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        error,
+        0,
+        message,
+        0,
+        nullptr);
+  if not status:
+    raise Exception('FormatMessage failed: %s' % GetLastError())
+  return '%s (%s)' % (message, error)

@@ -525,33 +525,41 @@ with open(PE_FILE, 'rb') as f:
     section_header = read_section_header(f)
     print(section_header.name)
 
+print()
 
 #
 # Code to debug a runnnig process
 #
 
-winapi.MessageBox(winapi.nullptr, 'foo', 'faa', winapi.MB_OK)
+DEBUGEE_PID = 4944
 
-DEBUGEE_PID = 6932
+try:
 
-success = winapi.DebugActiveProcess(DEBUGEE_PID)
-if not success:
-  raise Exception('DebugActiveProcess failed')
+  if not winapi.DebugActiveProcess(DEBUGEE_PID):
+    raise Exception('DebugActiveProcess failed')
 
-success = winapi.DebugSetProcessKillOnExit(0)
-if not success:
-  raise Exception('DebugSetProcessKillOnExit failed')
+  if not winapi.DebugSetProcessKillOnExit(0):
+    raise Exception('DebugSetProcessKillOnExit failed')
 
-debug_event = winapi.DEBUG_EVENT()
-success = winapi.WaitForDebugEvent(ctypes.pointer(debug_event), winapi.INFINITE)
-if not success:
-  raise Exception('WaitForDebugEvent failed')
+  while True:
+    debug_event = winapi.DEBUG_EVENT()
+    if not winapi.WaitForDebugEvent(ctypes.pointer(debug_event), 1000):
+      raise Exception('WaitForDebugEvent failed')
 
-debug_event_code = debug_event.dwDebugEventCode
-print(winapi.debug_event_code_to_str(debug_event_code))
+    print('Debug Event:')
+    print(winapi.debug_event_to_str(debug_event))
+    print()
 
-success = winapi.DebugActiveProcessStop(DEBUGEE_PID)
-if not success:
-  raise Exception('DebugActiveProcessStop failed')
+    if not winapi.ContinueDebugEvent(
+      debug_event.dwProcessId,  debug_event.dwThreadId,  winapi.DBG_CONTINUE):
+        raise Exception('ContinueDebugEvent failed')
+
+  success = winapi.DebugActiveProcessStop(DEBUGEE_PID)
+  if not success:
+    raise Exception('DebugActiveProcessStop failed')
+
+except Exception as ex:
+  error = winapi.get_last_error_string()
+  winapi.MessageBox(winapi.nullptr, error, str(ex), winapi.MB_ICONEXCLAMATION)
 
 print('Done.')
