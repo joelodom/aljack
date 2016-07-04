@@ -5,8 +5,7 @@
 #
 
 import sys
-import ctypes
-import ctypes.wintypes
+import winapi
 
 # start with a Python version check
 
@@ -525,52 +524,12 @@ with open(PE_FILE, 'rb') as f:
     section_header = read_section_header(f)
     print(section_header.name)
 
-#
-# Code to debug a runnnig process
-#
-
-class winapi:
-  nullptr = None
-
-#WINBASEAPI
-#BOOL
-#WINAPI
-#DebugActiveProcess(
-#    __in DWORD dwProcessId
-#    );
-winapi.DebugActiveProcess = ctypes.windll.kernel32.DebugActiveProcess
-winapi.DebugActiveProcess.restype = ctypes.wintypes.BOOL
-winapi.DebugActiveProcess.argtypes = [ ctypes.wintypes.DWORD ]
-
-#WINBASEAPI
-#BOOL
-#WINAPI
-#DebugActiveProcessStop(
-#    __in DWORD dwProcessId
-#    );
-winapi.DebugActiveProcessStop = ctypes.windll.kernel32.DebugActiveProcessStop
-winapi.DebugActiveProcessStop.restype = ctypes.wintypes.BOOL
-winapi.DebugActiveProcessStop.argtypes = [ ctypes.wintypes.DWORD ]
-
-
-#WINUSERAPI
-#int
-#WINAPI
-#MessageBoxW(
-#    __in_opt HWND hWnd,
-#    __in_opt LPCWSTR lpText,
-#    __in_opt LPCWSTR lpCaption,
-#    __in UINT uType);
-winapi.MessageBox = ctypes.windll.user32.MessageBoxW
-winapi.MessageBox.restype = ctypes.c_int
-winapi.MessageBox.argtypes = [ ctypes.wintypes.HWND, ctypes.wintypes.LPCWSTR,
-  ctypes.wintypes.LPCWSTR, ctypes.wintypes.UINT ]
-
-winapi.MessageBox(winapi.nullptr, 'foo', 'faa', 0)
 
 #
 # Code to debug a runnnig process
 #
+
+winapi.MessageBox(winapi.nullptr, 'foo', 'faa', winapi.MB_OK)
 
 DEBUGEE_PID = 4468
 
