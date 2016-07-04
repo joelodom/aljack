@@ -378,7 +378,7 @@ FormatMessage = ctypes.windll.kernel32.FormatMessageW
 FormatMessage.restype = ctypes.wintypes.DWORD
 FormatMessage.argtypes = [ ctypes.wintypes.DWORD, ctypes.wintypes.LPCVOID, ctypes.wintypes.DWORD,
   ctypes.wintypes.DWORD, ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD,
-  ctypes.wintypes.LPVOID ] # doesn't support the optional argument list
+  ctypes.wintypes.LPVOID ]
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER 0x00000100
 #define FORMAT_MESSAGE_IGNORE_INSERTS  0x00000200
@@ -396,6 +396,16 @@ FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
 FORMAT_MESSAGE_ARGUMENT_ARRAY = 0x00002000
 FORMAT_MESSAGE_MAX_WIDTH_MASK = 0x000000FF
 
+#WINBASEAPI
+#HLOCAL
+#WINAPI
+#LocalFree(
+#    __deref HLOCAL hMem
+#    );
+
+LocalFree = ctypes.windll.kernel32.LocalFree
+LocalFree.restype = ctypes.wintypes.HLOCAL
+LocalFree.argtypes = [ ctypes.wintypes.HLOCAL ]
 
 #
 # Utility functions
@@ -427,17 +437,15 @@ def debug_event_to_str(debug_event):
 
 def get_last_error_string():
   error = GetLastError()
-  message = ctypes.wintypes.LPWSTR()
+  buf = ctypes.wintypes.LPWSTR()
+
   status = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr,
-        error,
-        0,
-        message,
-        0,
-        nullptr);
+    FORMAT_MESSAGE_ALLOCATE_BUFFER  | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr, error, 0, ctypes.cast(ctypes.byref(buf), ctypes.wintypes.LPWSTR), 0, nullptr);
   if not status:
-    raise Exception('FormatMessage failed: %s' % GetLastError())
-  return '%s (%s)' % (message, error)
+    raise Exception('FormatMessage failed (%s)' % GetLastError())
+
+  if LocalFree(buf) != nullptr:
+    raise Exception('LocalFree failed (%s)' % GetLastError())
+
+  return '%s (%s)' % (buf.value, error)
