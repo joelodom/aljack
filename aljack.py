@@ -531,15 +531,19 @@ print()
 # Code to debug a runnnig process
 #
 
-DEBUGEE_PID = 4944
-
 try:
 
-  if not winapi.DebugActiveProcess(DEBUGEE_PID):
-    raise Exception('DebugActiveProcess failed')
+  creation_flags = winapi.DEBUG_PROCESS
 
-  if not winapi.DebugSetProcessKillOnExit(0):
-    raise Exception('DebugSetProcessKillOnExit failed')
+  startup_info = winapi.STARTUPINFOW()
+  startup_info.cb = ctypes.sizeof(startup_info)
+
+  process_info = winapi.PROCESS_INFORMATION()
+
+  if not winapi.CreateProcess(PE_FILE, winapi.nullptr, winapi.nullptr, winapi.nullptr,
+    winapi.FALSE, creation_flags, winapi.nullptr, winapi.nullptr,
+    ctypes.pointer(startup_info), ctypes.pointer(process_info)):
+      raise Exception('CreateProcess failed')
 
   while True: # debugger loop
     print('Waiting...')

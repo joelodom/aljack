@@ -20,6 +20,9 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
 
 nullptr = None
 
+TRUE = 1
+FALSE = 0
+
 #define MB_OK                       0x00000000L
 #define MB_OKCANCEL                 0x00000001L
 #define MB_ABORTRETRYIGNORE         0x00000002L
@@ -411,6 +414,186 @@ LocalFree.argtypes = [ ctypes.wintypes.HLOCAL ]
 
 ERROR_SEM_TIMEOUT = 121
 
+#typedef struct _SECURITY_ATTRIBUTES {
+#    DWORD nLength;
+#    LPVOID lpSecurityDescriptor;
+#    BOOL bInheritHandle;
+#} SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+
+class SECURITY_ATTRIBUTES(ctypes.Structure):
+  _fields_ = [
+    ('nLength', ctypes.wintypes.DWORD),
+    ('lpSecurityDescriptor', ctypes.wintypes.LPVOID),
+    ('bInheritHandle', ctypes.wintypes.BOOL)
+  ]
+
+LPSECURITY_ATTRIBUTES = ctypes.POINTER(SECURITY_ATTRIBUTES)
+
+#typedef struct _STARTUPINFOW {
+#    DWORD   cb;
+#    LPWSTR  lpReserved;
+#    LPWSTR  lpDesktop;
+#    LPWSTR  lpTitle;
+#    DWORD   dwX;
+#    DWORD   dwY;
+#    DWORD   dwXSize;
+#    DWORD   dwYSize;
+#    DWORD   dwXCountChars;
+#    DWORD   dwYCountChars;
+#    DWORD   dwFillAttribute;
+#    DWORD   dwFlags;
+#    WORD    wShowWindow;
+#    WORD    cbReserved2;
+#    LPBYTE  lpReserved2;
+#    HANDLE  hStdInput;
+#    HANDLE  hStdOutput;
+#    HANDLE  hStdError;
+#} STARTUPINFOW, *LPSTARTUPINFOW;
+
+class STARTUPINFOW(ctypes.Structure):
+  _fields_ = [
+    ('cb', ctypes.wintypes.DWORD),
+    ('lpReserved', ctypes.wintypes.LPWSTR),
+    ('lpDesktop', ctypes.wintypes.LPWSTR),
+    ('lpTitle', ctypes.wintypes.LPWSTR),
+    ('dwX', ctypes.wintypes.DWORD),
+    ('dwY', ctypes.wintypes.DWORD),
+    ('dwXSize', ctypes.wintypes.DWORD),
+    ('dwYSize', ctypes.wintypes.DWORD),
+    ('dwXCountChars', ctypes.wintypes.DWORD),
+    ('dwYCountChars', ctypes.wintypes.DWORD),
+    ('dwFillAttribute', ctypes.wintypes.DWORD),
+    ('dwFlags', ctypes.wintypes.DWORD),
+    ('wShowWindow', ctypes.wintypes.WORD),
+    ('cbReserved2', ctypes.wintypes.WORD),
+    ('lpReserved2', ctypes.wintypes.LPBYTE),
+    ('hStdInput', ctypes.wintypes.HANDLE),
+    ('hStdOutput', ctypes.wintypes.HANDLE),
+    ('hStdError', ctypes.wintypes.HANDLE)
+  ]
+
+LPSTARTUPINFOW = ctypes.POINTER(STARTUPINFOW)
+
+#typedef struct _PROCESS_INFORMATION {
+#    HANDLE hProcess;
+#    HANDLE hThread;
+#    DWORD dwProcessId;
+#    DWORD dwThreadId;
+#} PROCESS_INFORMATION, *PPROCESS_INFORMATION, *LPPROCESS_INFORMATION;
+
+class PROCESS_INFORMATION(ctypes.Structure):
+  _fields_ = [
+    ('hProcess', ctypes.wintypes.HANDLE),
+    ('hThread', ctypes.wintypes.HANDLE),
+    ('dwProcessId', ctypes.wintypes.DWORD),
+    ('dwThreadId', ctypes.wintypes.DWORD)
+  ]
+
+LPPROCESS_INFORMATION = ctypes.POINTER(PROCESS_INFORMATION)
+
+#WINBASEAPI
+#BOOL
+#WINAPI
+#CreateProcessW(
+#    __in_opt    LPCWSTR lpApplicationName,
+#    __inout_opt LPWSTR lpCommandLine,
+#    __in_opt    LPSECURITY_ATTRIBUTES lpProcessAttributes,
+#    __in_opt    LPSECURITY_ATTRIBUTES lpThreadAttributes,
+#    __in        BOOL bInheritHandles,
+#    __in        DWORD dwCreationFlags,
+#    __in_opt    LPVOID lpEnvironment,
+#    __in_opt    LPCWSTR lpCurrentDirectory,
+#    __in        LPSTARTUPINFOW lpStartupInfo,
+#    __out       LPPROCESS_INFORMATION lpProcessInformation
+#    );
+
+CreateProcess = ctypes.windll.kernel32.CreateProcessW
+CreateProcess.restype = ctypes.wintypes.BOOL
+CreateProcess.argtypes = [ ctypes.wintypes.LPCWSTR, ctypes.wintypes.LPWSTR,
+  LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, ctypes.wintypes.BOOL,
+  ctypes.wintypes.DWORD, ctypes.wintypes.LPVOID, ctypes.wintypes.LPCWSTR,
+  LPSTARTUPINFOW, LPPROCESS_INFORMATION ]
+
+#//
+#// Process dwCreationFlag values
+#//
+
+#define DEBUG_PROCESS                     0x00000001
+#define DEBUG_ONLY_THIS_PROCESS           0x00000002
+#define CREATE_SUSPENDED                  0x00000004
+#define DETACHED_PROCESS                  0x00000008
+
+#define CREATE_NEW_CONSOLE                0x00000010
+#define NORMAL_PRIORITY_CLASS             0x00000020
+#define IDLE_PRIORITY_CLASS               0x00000040
+#define HIGH_PRIORITY_CLASS               0x00000080
+
+#define REALTIME_PRIORITY_CLASS           0x00000100
+#define CREATE_NEW_PROCESS_GROUP          0x00000200
+#define CREATE_UNICODE_ENVIRONMENT        0x00000400
+#define CREATE_SEPARATE_WOW_VDM           0x00000800
+
+#define CREATE_SHARED_WOW_VDM             0x00001000
+#define CREATE_FORCEDOS                   0x00002000
+#define BELOW_NORMAL_PRIORITY_CLASS       0x00004000
+#define ABOVE_NORMAL_PRIORITY_CLASS       0x00008000
+
+#define INHERIT_PARENT_AFFINITY           0x00010000
+#define INHERIT_CALLER_PRIORITY           0x00020000    // Deprecated
+#define CREATE_PROTECTED_PROCESS          0x00040000
+#define EXTENDED_STARTUPINFO_PRESENT      0x00080000
+
+#define PROCESS_MODE_BACKGROUND_BEGIN     0x00100000
+#define PROCESS_MODE_BACKGROUND_END       0x00200000
+
+#define CREATE_BREAKAWAY_FROM_JOB         0x01000000
+#define CREATE_PRESERVE_CODE_AUTHZ_LEVEL  0x02000000
+#define CREATE_DEFAULT_ERROR_MODE         0x04000000
+#define CREATE_NO_WINDOW                  0x08000000
+
+#define PROFILE_USER                      0x10000000
+#define PROFILE_KERNEL                    0x20000000
+#define PROFILE_SERVER                    0x40000000
+#define CREATE_IGNORE_SYSTEM_DEFAULT      0x80000000
+
+DEBUG_PROCESS                     = 0x00000001
+DEBUG_ONLY_THIS_PROCESS           = 0x00000002
+CREATE_SUSPENDED                  = 0x00000004
+DETACHED_PROCESS                  = 0x00000008
+
+CREATE_NEW_CONSOLE                = 0x00000010
+NORMAL_PRIORITY_CLASS             = 0x00000020
+IDLE_PRIORITY_CLASS               = 0x00000040
+HIGH_PRIORITY_CLASS               = 0x00000080
+
+REALTIME_PRIORITY_CLASS           = 0x00000100
+CREATE_NEW_PROCESS_GROUP          = 0x00000200
+CREATE_UNICODE_ENVIRONMENT        = 0x00000400
+CREATE_SEPARATE_WOW_VDM           = 0x00000800
+
+CREATE_SHARED_WOW_VDM             = 0x00001000
+CREATE_FORCEDOS                   = 0x00002000
+BELOW_NORMAL_PRIORITY_CLASS       = 0x00004000
+ABOVE_NORMAL_PRIORITY_CLASS       = 0x00008000
+
+INHERIT_PARENT_AFFINITY           = 0x00010000
+INHERIT_CALLER_PRIORITY           = 0x00020000    # // Deprecated
+CREATE_PROTECTED_PROCESS          = 0x00040000
+EXTENDED_STARTUPINFO_PRESENT      = 0x00080000
+
+PROCESS_MODE_BACKGROUND_BEGIN     = 0x00100000
+PROCESS_MODE_BACKGROUND_END       = 0x00200000
+
+CREATE_BREAKAWAY_FROM_JOB         = 0x01000000
+CREATE_PRESERVE_CODE_AUTHZ_LEVEL  = 0x02000000
+CREATE_DEFAULT_ERROR_MODE         = 0x04000000
+CREATE_NO_WINDOW                  = 0x08000000
+
+PROFILE_USER                      = 0x10000000
+PROFILE_KERNEL                    = 0x20000000
+PROFILE_SERVER                    = 0x40000000
+CREATE_IGNORE_SYSTEM_DEFAULT      = 0x80000000
+
 #
 # Utility functions
 #
@@ -449,7 +632,9 @@ def get_last_error_string():
   if not status:
     raise Exception('FormatMessage failed (%s)' % GetLastError())
 
+  message = buf.value
+
   if LocalFree(buf) != nullptr:
     raise Exception('LocalFree failed (%s)' % GetLastError())
 
-  return '%s (%s)' % (buf.value, error)
+  return '%s (%s)' % (message, error)
