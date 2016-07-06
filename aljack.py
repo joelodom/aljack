@@ -1,7 +1,7 @@
 #
 # A PE analyzer by Joel Odom
 #
-# Comment that resembles C code are probably snippets from Windows header files
+# Comments that resemble C code are probably snippets from Windows header files.
 #
 
 import sys
@@ -533,6 +533,10 @@ print()
 
 try:
 
+  thread_handle = None # monitor this thread for experimentation
+
+  # create the debugee
+
   creation_flags = winapi.DEBUG_PROCESS
 
   startup_info = winapi.STARTUPINFOW()
@@ -546,25 +550,51 @@ try:
       raise Exception('CreateProcess failed')
 
   while True: # debugger loop
-    print('Waiting...')
+
+    # wait for a debug event
 
     debug_event = winapi.DEBUG_EVENT()
+
     if not winapi.WaitForDebugEvent(ctypes.pointer(debug_event), winapi.INFINITE):
       #if winapi.GetLastError() == winapi.ERROR_SEM_TIMEOUT:
       #  continue
       raise Exception('WaitForDebugEvent failed')
 
+    # handle the debug event
+
     print('Debug Event:')
     print(winapi.debug_event_to_str(debug_event))
     print()
 
+    if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
+
+      # CREATE_PROCESS_DEBUG_EVENT
+
+      create_process_debug_info = debug_event.u.CreateProcessInfo
+      print(winapi.create_process_debug_info_to_str(create_process_debug_info))
+      print()
+
+      thread_handle = debug_event.u.CreateProcessInfo.hThread
+
+    elif debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
+      # EXIT_PROCESS_DEBUG_EVENT
+      break # exit the debugger loop
+
+    # output information on the thread we are experimentally monitoring
+
+    if thread_handle != None:
+      context = winapi.CONTEXT()
+      context.ContextFlags = winapi.CONTEXT_ALL
+      if not winapi.GetThreadContext(thread_handle, ctypes.pointer(context)):
+          raise Exception('GetThreadContext failed')
+      print(winapi.context_to_str(context))
+      print()
+
+    # allow the debugee to continue
+
     if not winapi.ContinueDebugEvent(
       debug_event.dwProcessId,  debug_event.dwThreadId,  winapi.DBG_CONTINUE):
         raise Exception('ContinueDebugEvent failed')
-
-  success = winapi.DebugActiveProcessStop(DEBUGEE_PID)
-  if not success:
-    raise Exception('DebugActiveProcessStop failed')
 
 except Exception as ex:
   error = winapi.get_last_error_string()
