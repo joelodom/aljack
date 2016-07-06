@@ -583,11 +583,11 @@ try:
     # output information on the thread we are experimentally monitoring
 
     if thread_handle != None:
-      context = winapi.CONTEXT()
-      context.ContextFlags = winapi.CONTEXT_ALL
-      if not winapi.GetThreadContext(thread_handle, ctypes.pointer(context)):
+      context = winapi.WOW64_CONTEXT()
+      context.ContextFlags = winapi.WOW64_CONTEXT_ALL
+      if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
-      print(winapi.context_to_str(context))
+      print(winapi.wow64_context_to_str(context))
       print()
 
     # allow the debugee to continue
