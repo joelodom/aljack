@@ -7,6 +7,7 @@
 import sys
 import winapi
 import ctypes
+import utils
 
 # start with a Python version check
 
@@ -571,24 +572,34 @@ try:
       # CREATE_PROCESS_DEBUG_EVENT
 
       create_process_debug_info = debug_event.u.CreateProcessInfo
-      print(winapi.create_process_debug_info_to_str(create_process_debug_info))
+      print(utils.indent_string(winapi.create_process_debug_info_to_str(create_process_debug_info)))
       print()
 
       thread_handle = debug_event.u.CreateProcessInfo.hThread
 
-    elif debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
-      # EXIT_PROCESS_DEBUG_EVENT
-      break # exit the debugger loop
-
-    # output information on the thread we are experimentally monitoring
+    # INTERLUDE: output information on the thread we are experimentally monitoring
 
     if thread_handle != None:
       context = winapi.WOW64_CONTEXT()
       context.ContextFlags = winapi.WOW64_CONTEXT_ALL
       if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
-      print(winapi.wow64_context_to_str(context))
+      print(utils.indent_string(winapi.wow64_context_to_str(context)))
       print()
+
+    # END INTERLUDE
+
+    if debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
+
+      # LOAD_DLL_DEBUG_EVENT
+      load_dll_debug_info = debug_event.u.LoadDll
+      print(utils.indent_string(winapi.load_dll_debug_info_to_str(
+        process_info.hProcess, load_dll_debug_info)))
+      print()
+
+    elif debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
+      # EXIT_PROCESS_DEBUG_EVENT
+      break # exit the debugger loop
 
     # allow the debugee to continue
 

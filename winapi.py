@@ -7,6 +7,7 @@
 import sys
 import ctypes
 import ctypes.wintypes
+import utils
 
 # start with a Python version check
 
@@ -22,6 +23,10 @@ nullptr = None
 
 TRUE = 1
 FALSE = 0
+
+# not sure if this is correct
+ULONG_PTR = ctypes.wintypes.PULONG
+SIZE_T = ctypes.c_size_t
 
 #define MB_OK                       0x00000000L
 #define MB_OKCANCEL                 0x00000001L
@@ -48,7 +53,7 @@ MB_ICONEXCLAMATION = 0x00000030
 MB_ICONASTERISK = 0x00000040
 
 #typedef void *PVOID;
-PVOID = ctypes.c_void_p
+PVOID = ctypes.wintypes.LPVOID
 
 #WINBASEAPI
 #BOOL
@@ -90,9 +95,6 @@ MessageBox.argtypes = [ ctypes.wintypes.HWND, ctypes.wintypes.LPCWSTR,
 #define EXCEPTION_MAXIMUM_PARAMETERS 15 // maximum number of exception parameters
 EXCEPTION_MAXIMUM_PARAMETERS = 15
 
-# not sure if this is correct
-ULONG_PTR = ctypes.wintypes.PULONG
-
 #typedef struct _EXCEPTION_RECORD {
 #    DWORD    ExceptionCode;
 #    DWORD ExceptionFlags;
@@ -108,7 +110,7 @@ class EXCEPTION_RECORD(ctypes.Structure):
     ('ExceptionFlags', ctypes.wintypes.DWORD),
     #TODO ('ExceptionRecord', ctypes.POINTER(EXCEPTION_RECORD)),
     ('ExceptionRecord', ctypes.c_void_p),
-    ('ExceptionAddress', ctypes.c_void_p),
+    ('ExceptionAddress', PVOID),
     ('NumberParameters', ctypes.wintypes.DWORD),
     ('ExceptionInformation', ULONG_PTR * EXCEPTION_MAXIMUM_PARAMETERS )
   ]
@@ -1013,6 +1015,60 @@ WOW64_CONTEXT_ALL      = (WOW64_CONTEXT_CONTROL | WOW64_CONTEXT_INTEGER | WOW64_
 
 WOW64_CONTEXT_XSTATE               = (WOW64_CONTEXT_i386 | 0x00000040)
 
+#WINBASEAPI
+#BOOL
+#WINAPI
+#ReadProcessMemory(
+#    __in      HANDLE hProcess,
+#    __in      LPCVOID lpBaseAddress,
+#    __out_bcount_part(nSize, *lpNumberOfBytesRead) LPVOID lpBuffer,
+#    __in      SIZE_T nSize,
+#    __out_opt SIZE_T * lpNumberOfBytesRead
+#    );
+
+ReadProcessMemory = ctypes.windll.kernel32.ReadProcessMemory
+ReadProcessMemory.restype = ctypes.wintypes.BOOL
+ReadProcessMemory.argtypes = [ ctypes.wintypes.HANDLE, ctypes.wintypes.LPCVOID,
+  ctypes.wintypes.LPVOID, SIZE_T, ctypes.POINTER(SIZE_T) ]
+
+#typedef struct _MEMORY_BASIC_INFORMATION {
+#    PVOID BaseAddress;
+#    PVOID AllocationBase;
+#    DWORD AllocationProtect;
+#    SIZE_T RegionSize;
+#    DWORD State;
+#    DWORD Protect;
+#    DWORD Type;
+#} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
+
+class MEMORY_BASIC_INFORMATION(ctypes.Structure):
+  _fields_ = [
+    ('BaseAddress', PVOID),
+    ('AllocationBase', PVOID),
+    ('AllocationProtect', ctypes.wintypes.DWORD),
+    ('RegionSize', SIZE_T),
+    ('State', ctypes.wintypes.DWORD),
+    ('Protect', ctypes.wintypes.DWORD),
+    ('Type', ctypes.wintypes.DWORD)
+  ]
+
+PMEMORY_BASIC_INFORMATION = ctypes.POINTER(MEMORY_BASIC_INFORMATION)
+
+#WINBASEAPI
+#SIZE_T
+#WINAPI
+#VirtualQueryEx(
+#    __in     HANDLE hProcess,
+#    __in_opt LPCVOID lpAddress,
+#    __out_bcount_part(dwLength, return) PMEMORY_BASIC_INFORMATION lpBuffer,
+#    __in     SIZE_T dwLength
+#    );
+
+VirtualQueryEx = ctypes.windll.kernel32.VirtualQueryEx
+VirtualQueryEx.restype = SIZE_T
+VirtualQueryEx.argtypes = [ ctypes.wintypes.HANDLE, ctypes.wintypes.LPCVOID,
+  PMEMORY_BASIC_INFORMATION, SIZE_T ]
+
 #
 # Utility functions
 #
@@ -1060,6 +1116,61 @@ def create_process_debug_info_to_str(create_process_debug_info):
     create_process_debug_info.lpStartAddress,
     create_process_debug_info.lpImageName,
     create_process_debug_info.fUnicode)
+  )
+
+def memory_basic_info_to_str(memory_basic_info):
+  return (
+    'BaseAddress: 0x%08x\n'
+    'AllocationBase: 0x%08x\n'
+    'AllocationProtect: %s\n'
+    'RegionSize: %s\n'
+    'State: %s\n'
+    'Protect: %s\n'
+    'Type: 0x%08x'
+    % (memory_basic_info.BaseAddress,
+    memory_basic_info.AllocationBase,
+    memory_basic_info.AllocationProtect,
+    memory_basic_info.RegionSize,
+    memory_basic_info.State,
+    memory_basic_info.Protect,
+    memory_basic_info.Type)
+  )
+
+def read_wstring_from_remote_process(process_handle, pointer):
+  p = pointer
+  buf = ctypes.wintypes.LPWSTR('  ')
+  rv = ''
+
+  while True:
+
+    if not ReadProcessMemory(process_handle, p, buf, 2, nullptr):
+      memory_basic_info = MEMORY_BASIC_INFORMATION()
+      status = VirtualQueryEx(
+        process_handle, p, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
+      if status:
+        print('Memory Information for 0x%08x:' % p)
+        print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
+        print()
+      else:
+        print('VirtualQueryEx failed')
+      raise Exception('ReadProcessMemory failed to read 0x%08x' % p)
+
+    if buf == '\0\0':
+      return rv
+    rv += buf.value
+    p += 1
+
+def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
+  if not load_dll_debug_info.fUnicode:
+    raise Exception('need to handle non-Unicode')
+
+  return (
+    'hFile: 0x%x\n'
+    'lpImageName: %s\n'
+    'fUnicode: %s'
+    % (load_dll_debug_info.hFile,
+    read_wstring_from_remote_process(process_handle, load_dll_debug_info.lpImageName),
+    load_dll_debug_info.fUnicode)
   )
 
 def debug_event_to_str(debug_event):
