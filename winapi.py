@@ -1114,9 +1114,129 @@ class IMAGE_DOS_HEADER(ctypes.Structure):
     ('e_lfanew', ctypes.wintypes.LONG)
   ]
 
+#define IMAGE_FILE_MACHINE_UNKNOWN           0
+#define IMAGE_FILE_MACHINE_I386              0x014c  // Intel 386.
+#define IMAGE_FILE_MACHINE_R3000             0x0162  // MIPS little-endian, 0x160 big-endian
+#define IMAGE_FILE_MACHINE_R4000             0x0166  // MIPS little-endian
+#define IMAGE_FILE_MACHINE_R10000            0x0168  // MIPS little-endian
+#define IMAGE_FILE_MACHINE_WCEMIPSV2         0x0169  // MIPS little-endian WCE v2
+#define IMAGE_FILE_MACHINE_ALPHA             0x0184  // Alpha_AXP
+#define IMAGE_FILE_MACHINE_SH3               0x01a2  // SH3 little-endian
+#define IMAGE_FILE_MACHINE_SH3DSP            0x01a3
+#define IMAGE_FILE_MACHINE_SH3E              0x01a4  // SH3E little-endian
+#define IMAGE_FILE_MACHINE_SH4               0x01a6  // SH4 little-endian
+#define IMAGE_FILE_MACHINE_SH5               0x01a8  // SH5
+#define IMAGE_FILE_MACHINE_ARM               0x01c0  // ARM Little-Endian
+#define IMAGE_FILE_MACHINE_THUMB             0x01c2
+#define IMAGE_FILE_MACHINE_AM33              0x01d3
+#define IMAGE_FILE_MACHINE_POWERPC           0x01F0  // IBM PowerPC Little-Endian
+#define IMAGE_FILE_MACHINE_POWERPCFP         0x01f1
+#define IMAGE_FILE_MACHINE_IA64              0x0200  // Intel 64
+#define IMAGE_FILE_MACHINE_MIPS16            0x0266  // MIPS
+#define IMAGE_FILE_MACHINE_ALPHA64           0x0284  // ALPHA64
+#define IMAGE_FILE_MACHINE_MIPSFPU           0x0366  // MIPS
+#define IMAGE_FILE_MACHINE_MIPSFPU16         0x0466  // MIPS
+#define IMAGE_FILE_MACHINE_AXP64             IMAGE_FILE_MACHINE_ALPHA64
+#define IMAGE_FILE_MACHINE_TRICORE           0x0520  // Infineon
+#define IMAGE_FILE_MACHINE_CEF               0x0CEF
+#define IMAGE_FILE_MACHINE_EBC               0x0EBC  // EFI Byte Code
+#define IMAGE_FILE_MACHINE_AMD64             0x8664  // AMD64 (K8)
+#define IMAGE_FILE_MACHINE_M32R              0x9041  // M32R little-endian
+#define IMAGE_FILE_MACHINE_CEE               0xC0EE
+
+IMAGE_FILE_MACHINE_UNKNOWN          = 0
+IMAGE_FILE_MACHINE_I386             = 0x014c
+IMAGE_FILE_MACHINE_R3000            = 0x0162
+IMAGE_FILE_MACHINE_R4000            = 0x0166
+IMAGE_FILE_MACHINE_R10000           = 0x0168
+IMAGE_FILE_MACHINE_WCEMIPSV2        = 0x0169
+IMAGE_FILE_MACHINE_ALPHA            = 0x0184
+IMAGE_FILE_MACHINE_SH3              = 0x01a2
+IMAGE_FILE_MACHINE_SH3DSP           = 0x01a3
+IMAGE_FILE_MACHINE_SH3E             = 0x01a4
+IMAGE_FILE_MACHINE_SH4              = 0x01a6
+IMAGE_FILE_MACHINE_SH5              = 0x01a8
+IMAGE_FILE_MACHINE_ARM              = 0x01c0
+IMAGE_FILE_MACHINE_THUMB            = 0x01c2
+IMAGE_FILE_MACHINE_AM33             = 0x01d3
+IMAGE_FILE_MACHINE_POWERPC          = 0x01F0
+IMAGE_FILE_MACHINE_POWERPCFP        = 0x01f1
+IMAGE_FILE_MACHINE_IA64             = 0x0200
+IMAGE_FILE_MACHINE_MIPS16           = 0x0266
+IMAGE_FILE_MACHINE_ALPHA64          = 0x0284
+IMAGE_FILE_MACHINE_MIPSFPU          = 0x0366
+IMAGE_FILE_MACHINE_MIPSFPU16        = 0x0466
+IMAGE_FILE_MACHINE_AXP64            = IMAGE_FILE_MACHINE_ALPHA64
+IMAGE_FILE_MACHINE_TRICORE          = 0x0520
+IMAGE_FILE_MACHINE_CEF              = 0x0CEF
+IMAGE_FILE_MACHINE_EBC              = 0x0EBC
+IMAGE_FILE_MACHINE_AMD64            = 0x8664
+IMAGE_FILE_MACHINE_M32R             = 0x9041
+IMAGE_FILE_MACHINE_CEE              = 0xC0EE
+
 #
 # Utility functions
 #
+
+def image_file_machine_to_str(image_file_machine_machine):
+
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_I386:
+    return 'IMAGE_FILE_MACHINE_I386'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_R3000:
+    return 'IMAGE_FILE_MACHINE_R3000'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_R4000:
+    return 'IMAGE_FILE_MACHINE_R4000'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_R10000:
+    return 'IMAGE_FILE_MACHINE_R10000'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_WCEMIPSV2:
+    return 'IMAGE_FILE_MACHINE_WCEMIPSV2'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_ALPHA:
+    return 'IMAGE_FILE_MACHINE_ALPHA'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_SH3:
+    return 'IMAGE_FILE_MACHINE_SH3'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_SH3DSP:
+    return 'IMAGE_FILE_MACHINE_SH3DSP'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_SH3E:
+    return 'IMAGE_FILE_MACHINE_SH3E'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_SH4:
+    return 'IMAGE_FILE_MACHINE_SH4'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_SH5:
+    return 'IMAGE_FILE_MACHINE_SH5'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_ARM:
+    return 'IMAGE_FILE_MACHINE_ARM'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_THUMB:
+    return 'IMAGE_FILE_MACHINE_THUMB'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_AM33:
+    return 'IMAGE_FILE_MACHINE_AM33'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_POWERPC:
+    return 'IMAGE_FILE_MACHINE_POWERPC'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_POWERPCFP:
+    return 'IMAGE_FILE_MACHINE_POWERPCFP'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_IA64:
+    return 'IMAGE_FILE_MACHINE_IA64'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_MIPS16:
+    return 'IMAGE_FILE_MACHINE_MIPS16'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_ALPHA64:
+    return 'IMAGE_FILE_MACHINE_ALPHA64'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_MIPSFPU:
+    return 'IMAGE_FILE_MACHINE_MIPSFPU'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_MIPSFPU16:
+    return 'IMAGE_FILE_MACHINE_MIPSFPU16'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_TRICORE:
+    return 'IMAGE_FILE_MACHINE_TRICORE'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_CEF:
+    return 'IMAGE_FILE_MACHINE_CEF'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_EBC:
+    return 'IMAGE_FILE_MACHINE_EBC'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_AMD64:
+    return 'IMAGE_FILE_MACHINE_AMD64'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_M32R:
+    return 'IMAGE_FILE_MACHINE_M32R'
+  if image_file_machine_machine == IMAGE_FILE_MACHINE_CEE:
+    return 'IMAGE_FILE_MACHINE_CEE'
+
+  return 'Unknown'
+
 
 def debug_event_code_to_str(debug_event_code):
   if debug_event_code == EXCEPTION_DEBUG_EVENT:

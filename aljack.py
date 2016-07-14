@@ -103,97 +103,6 @@ def read_dos_header(f):
 
 
 
-
-def machine_to_str(machine):
-
-  #define IMAGE_FILE_MACHINE_UNKNOWN           0
-  #define IMAGE_FILE_MACHINE_I386              0x014c  // Intel 386.
-  #define IMAGE_FILE_MACHINE_R3000             0x0162  // MIPS little-endian, 0x160 big-endian
-  #define IMAGE_FILE_MACHINE_R4000             0x0166  // MIPS little-endian
-  #define IMAGE_FILE_MACHINE_R10000            0x0168  // MIPS little-endian
-  #define IMAGE_FILE_MACHINE_WCEMIPSV2         0x0169  // MIPS little-endian WCE v2
-  #define IMAGE_FILE_MACHINE_ALPHA             0x0184  // Alpha_AXP
-  #define IMAGE_FILE_MACHINE_SH3               0x01a2  // SH3 little-endian
-  #define IMAGE_FILE_MACHINE_SH3DSP            0x01a3
-  #define IMAGE_FILE_MACHINE_SH3E              0x01a4  // SH3E little-endian
-  #define IMAGE_FILE_MACHINE_SH4               0x01a6  // SH4 little-endian
-  #define IMAGE_FILE_MACHINE_SH5               0x01a8  // SH5
-  #define IMAGE_FILE_MACHINE_ARM               0x01c0  // ARM Little-Endian
-  #define IMAGE_FILE_MACHINE_THUMB             0x01c2
-  #define IMAGE_FILE_MACHINE_AM33              0x01d3
-  #define IMAGE_FILE_MACHINE_POWERPC           0x01F0  // IBM PowerPC Little-Endian
-  #define IMAGE_FILE_MACHINE_POWERPCFP         0x01f1
-  #define IMAGE_FILE_MACHINE_IA64              0x0200  // Intel 64
-  #define IMAGE_FILE_MACHINE_MIPS16            0x0266  // MIPS
-  #define IMAGE_FILE_MACHINE_ALPHA64           0x0284  // ALPHA64
-  #define IMAGE_FILE_MACHINE_MIPSFPU           0x0366  // MIPS
-  #define IMAGE_FILE_MACHINE_MIPSFPU16         0x0466  // MIPS
-  #define IMAGE_FILE_MACHINE_AXP64             IMAGE_FILE_MACHINE_ALPHA64
-  #define IMAGE_FILE_MACHINE_TRICORE           0x0520  // Infineon
-  #define IMAGE_FILE_MACHINE_CEF               0x0CEF
-  #define IMAGE_FILE_MACHINE_EBC               0x0EBC  // EFI Byte Code
-  #define IMAGE_FILE_MACHINE_AMD64             0x8664  // AMD64 (K8)
-  #define IMAGE_FILE_MACHINE_M32R              0x9041  // M32R little-endian
-  #define IMAGE_FILE_MACHINE_CEE               0xC0EE
-
-
-  if machine == 0x014c:
-    return 'IMAGE_FILE_MACHINE_I386'
-  if machine == 0x0162:
-    return 'IMAGE_FILE_MACHINE_R3000'
-  if machine == 0x0166:
-    return 'IMAGE_FILE_MACHINE_R4000'
-  if machine == 0x0168:
-    return 'IMAGE_FILE_MACHINE_R10000'
-  if machine == 0x0169:
-    return 'IMAGE_FILE_MACHINE_WCEMIPSV2'
-  if machine == 0x0184:
-    return 'IMAGE_FILE_MACHINE_ALPHA'
-  if machine == 0x01a2:
-    return 'IMAGE_FILE_MACHINE_SH3'
-  if machine == 0x01a3:
-    return 'IMAGE_FILE_MACHINE_SH3DSP'
-  if machine == 0x01a4:
-    return 'IMAGE_FILE_MACHINE_SH3E'
-  if machine == 0x01a6:
-    return 'IMAGE_FILE_MACHINE_SH4'
-  if machine == 0x01a8:
-    return 'IMAGE_FILE_MACHINE_SH5'
-  if machine == 0x01c0:
-    return 'IMAGE_FILE_MACHINE_ARM'
-  if machine == 0x01c2:
-    return 'IMAGE_FILE_MACHINE_THUMB'
-  if machine == 0x01d3:
-    return 'IMAGE_FILE_MACHINE_AM33'
-  if machine == 0x01f0:
-    return 'IMAGE_FILE_MACHINE_POWERPC'
-  if machine == 0x01f1:
-    return 'IMAGE_FILE_MACHINE_POWERPCFP'
-  if machine == 0x0200:
-    return 'IMAGE_FILE_MACHINE_IA64'
-  if machine == 0x0266:
-    return 'IMAGE_FILE_MACHINE_MIPS16'
-  if machine == 0x0284:
-    return 'IMAGE_FILE_MACHINE_ALPHA64'
-  if machine == 0x0366:
-    return 'IMAGE_FILE_MACHINE_MIPSFPU'
-  if machine == 0x0466:
-    return 'IMAGE_FILE_MACHINE_MIPSFPU16'
-  if machine == 0x0520:
-    return 'IMAGE_FILE_MACHINE_TRICORE'
-  if machine == 0x0cef:
-    return 'IMAGE_FILE_MACHINE_CEF'
-  if machine == 0x0ebc:
-    return 'IMAGE_FILE_MACHINE_EBC'
-  if machine == 0x8664:
-    return 'IMAGE_FILE_MACHINE_AMD64'
-  if machine == 0x9041:
-    return 'IMAGE_FILE_MACHINE_M32R'
-  if machine == 0xc0ee:
-    return 'IMAGE_FILE_MACHINE_CEE'
-
-  return 'Unknown'
-
 def time_stamp_to_str(ts):
   # "value is seconds since December 31st, 1969, at 4:00 P.M."
   # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
@@ -269,7 +178,7 @@ class ImageFileHeader:
       'Size of optional header: %s\n'
       'Characteristics: %s (0x%04x)'
 
-      % (machine_to_str(self.machine), self.machine,
+      % (winapi.image_file_machine_to_str(self.machine), self.machine,
       self.number_of_sections,
       time_stamp_to_str(self.time_date_stamp), self.time_date_stamp,
       self.pointer_to_symbol_table,
