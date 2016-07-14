@@ -101,65 +101,10 @@ def read_dos_header(f):
 
   return dos_header
 
-
-
 def time_stamp_to_str(ts):
   # "value is seconds since December 31st, 1969, at 4:00 P.M."
   # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
   return 'TODO'
-
-def characteristics_to_str(characteristics):
-
-  #define IMAGE_FILE_RELOCS_STRIPPED           0x0001  // Relocation info stripped from file.
-  #define IMAGE_FILE_EXECUTABLE_IMAGE          0x0002  // File is executable  (i.e. no unresolved externel references).
-  #define IMAGE_FILE_LINE_NUMS_STRIPPED        0x0004  // Line nunbers stripped from file.
-  #define IMAGE_FILE_LOCAL_SYMS_STRIPPED       0x0008  // Local symbols stripped from file.
-  #define IMAGE_FILE_AGGRESIVE_WS_TRIM         0x0010  // Agressively trim working set
-  #define IMAGE_FILE_LARGE_ADDRESS_AWARE       0x0020  // App can handle >2gb addresses
-  #define IMAGE_FILE_BYTES_REVERSED_LO         0x0080  // Bytes of machine word are reversed.
-  #define IMAGE_FILE_32BIT_MACHINE             0x0100  // 32 bit word machine.
-  #define IMAGE_FILE_DEBUG_STRIPPED            0x0200  // Debugging info stripped from file in .DBG file
-  #define IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP   0x0400  // If Image is on removable media, copy and run from the swap file.
-  #define IMAGE_FILE_NET_RUN_FROM_SWAP         0x0800  // If Image is on Net, copy and run from the swap file.
-  #define IMAGE_FILE_SYSTEM                    0x1000  // System File.
-  #define IMAGE_FILE_DLL                       0x2000  // File is a DLL.
-  #define IMAGE_FILE_UP_SYSTEM_ONLY            0x4000  // File should only be run on a UP machine
-  #define IMAGE_FILE_BYTES_REVERSED_HI         0x8000  // Bytes of machine word are reversed.
-
-  chars = []
-
-  if characteristics & 0x0001:
-    chars.append('IMAGE_FILE_RELOCS_STRIPPED')
-  if characteristics & 0x0002:
-    chars.append('IMAGE_FILE_EXECUTABLE_IMAGE')
-  if characteristics & 0x0004:
-    chars.append('IMAGE_FILE_LINE_NUMS_STRIPPED')
-  if characteristics & 0x0008:
-    chars.append('IMAGE_FILE_LOCAL_SYMS_STRIPPED')
-  if characteristics & 0x0010:
-    chars.append('IMAGE_FILE_AGGRESIVE_WS_TRIM')
-  if characteristics & 0x0020:
-    chars.append('IMAGE_FILE_LARGE_ADDRESS_AWARE')
-  if characteristics & 0x0080:
-    chars.append('IMAGE_FILE_BYTES_REVERSED_LO')
-  if characteristics & 0x0100:
-    chars.append('IMAGE_FILE_32BIT_MACHINE')
-  if characteristics & 0x0200:
-    chars.append('IMAGE_FILE_DEBUG_STRIPPED')
-  if characteristics & 0x0400:
-    chars.append('IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP')
-  if characteristics & 0x0800:
-    chars.append('IMAGE_FILE_NET_RUN_FROM_SWAP')
-  if characteristics & 0x1000:
-    chars.append('IMAGE_FILE_SYSTEM')
-  if characteristics & 0x2000:
-    chars.append('IMAGE_FILE_DLL')
-  if characteristics & 0x4000:
-    chars.append('IMAGE_FILE_UP_SYSTEM_ONLY')
-  if characteristics & 0x8000:
-    chars.append('IMAGE_FILE_BYTES_REVERSED_HI')
-
-  return ' '.join(chars)
 
 
 class PEHeader:
@@ -184,7 +129,7 @@ class ImageFileHeader:
       self.pointer_to_symbol_table,
       self.number_of_symbols,
       self.size_of_optional_header,
-      characteristics_to_str(self.characteristics), self.characteristics
+      winapi.image_file_characteristics_to_str(self.characteristics), self.characteristics
       ))
 
 class ImageOptionalHeader:
