@@ -563,8 +563,7 @@ try:
 
     # handle the debug event
 
-    print('Debug Event:')
-    print(winapi.debug_event_to_str(debug_event))
+    print('Debug Event: %s' % winapi.debug_event_to_str(debug_event))
     print()
 
     if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
@@ -608,7 +607,10 @@ try:
         raise Exception('ContinueDebugEvent failed')
 
 except Exception as ex:
-  error = winapi.get_last_error_string()
-  winapi.MessageBox(winapi.nullptr, error, str(ex), winapi.MB_ICONEXCLAMATION)
+  print('**********  ERROR  **********')
+  print('Last Windows Error: %s' % winapi.get_last_error_string())
+  print()
+  raise ex
+  #  #winapi.MessageBox(winapi.nullptr, error, str(ex), winapi.MB_ICONEXCLAMATION)
 
 print('Done.')

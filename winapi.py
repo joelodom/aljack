@@ -1136,40 +1136,97 @@ def memory_basic_info_to_str(memory_basic_info):
     memory_basic_info.Type)
   )
 
+def show_memory_information(process_handle, pointer):
+  raise Exception('TODO')
+  #  # note that this code to get the memory information may not be correct
+  #  memory_basic_info = MEMORY_BASIC_INFORMATION()
+  #  status = VirtualQueryEx(
+  #    process_handle, pointer, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
+  #  if status:
+  #    print('Memory Information for 0x%08x:' % pointer)
+  #    print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
+  #    print()
+  #  else:
+  #    print('VirtualQueryEx failed')
+  #  raise Exception('ReadProcessMemory failed to read 0x%08x' % pointer)
+
+
+def read_word_from_remote_process(process_handle, pointer):
+  '''
+  Reads a word from a remote process.
+
+  Returns the word as an integer by swapping the bytes and converting to integer.
+  '''
+
+  buf = ctypes.create_string_buffer(2) # 2-byte buffer, initialized to nulls
+
+  if not ReadProcessMemory(process_handle, pointer, buf, 2, nullptr):
+    show_memory_information(process_handle, pointer)
+
+  rv = (buf.raw[1] << 8) + buf.raw[0]
+  #print('At 0x%08x we have word 0x%04x.' % (pointer, rv))
+  return rv
+
+def read_dword_from_remote_process(process_handle, pointer):
+  '''
+  Reads a double word from a remote process.
+
+  Returns the double word as an integer.
+  '''
+
+  buf = ctypes.create_string_buffer(4) # 4-byte buffer, initialized to nulls
+
+  if not ReadProcessMemory(process_handle, pointer, buf, 4, nullptr):
+    show_memory_information(process_handle, pointer)
+
+  rv = (buf.raw[3] << 24) + (buf.raw[2] << 16) + (buf.raw[1] << 8) + buf.raw[0]
+  #print('At 0x%08x we have dword 0x%08x.' % (pointer, rv))
+  return rv
+
 def read_wstring_from_remote_process(process_handle, pointer):
   p = pointer
-  buf = ctypes.wintypes.LPWSTR('  ')
   rv = ''
-
   while True:
-
-    if not ReadProcessMemory(process_handle, p, buf, 2, nullptr):
-      memory_basic_info = MEMORY_BASIC_INFORMATION()
-      status = VirtualQueryEx(
-        process_handle, p, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
-      if status:
-        print('Memory Information for 0x%08x:' % p)
-        print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
-        print()
-      else:
-        print('VirtualQueryEx failed')
-      raise Exception('ReadProcessMemory failed to read 0x%08x' % p)
-
-    if buf == '\0\0':
+    i = read_word_from_remote_process(process_handle, p)
+    if i == 0:
+      #print('At 0x%08x we have string %s' % (pointer, rv))
       return rv
-    rv += buf.value
-    p += 1
+    rv += chr(i)
+    p += 2
 
 def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
   if not load_dll_debug_info.fUnicode:
     raise Exception('need to handle non-Unicode')
+
+  #  lpImageName
+  #
+  #  A pointer to the file name associated with hFile. This member may be NULL,
+  #  or it may contain the address of a string pointer in the address space of
+  #  the process being debugged. That address may, in turn, either be NULL or
+  #  point to the actual filename. If fUnicode is a nonzero value, the name
+  #  string is Unicode; otherwise, it is ANSI.
+  #
+  #  This member is strictly optional. Debuggers must be prepared to handle the
+  #  case where lpImageName is NULL or *lpImageName (in the address space of
+  #  the process being debugged) is NULL. Specifically, the system will never
+  #  provide an image name for a create process event, and it will not likely
+  #  pass an image name for the first DLL event. The system will also never
+  #  provide this information in the case of debugging events that originate
+  #  from a call to the DebugActiveProcess function.
+
+  image_name = '<< no image name available >>'
+
+  if load_dll_debug_info.lpImageName:
+    p = read_dword_from_remote_process(process_handle, load_dll_debug_info.lpImageName)
+    if p:
+      image_name = read_wstring_from_remote_process(process_handle, p)
 
   return (
     'hFile: 0x%x\n'
     'lpImageName: %s\n'
     'fUnicode: %s'
     % (load_dll_debug_info.hFile,
-    read_wstring_from_remote_process(process_handle, load_dll_debug_info.lpImageName),
+    image_name,
     load_dll_debug_info.fUnicode)
   )
 
