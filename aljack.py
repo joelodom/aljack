@@ -61,39 +61,12 @@ def read_null_terminated_string(f, bytes_to_read):
 # Code to handle PE reading and parsing
 #
 
-class DOSHeader:
-  pass
-
 def read_dos_header(f):
   '''
   Reads the DOS header.
 
   The file position should be queued to the header to read.
   '''
-
-  #typedef struct _IMAGE_DOS_HEADER {      // DOS .EXE header
-  #    WORD   e_magic;                     // Magic number
-  #    WORD   e_cblp;                      // Bytes on last page of file
-  #    WORD   e_cp;                        // Pages in file
-  #    WORD   e_crlc;                      // Relocations
-  #    WORD   e_cparhdr;                   // Size of header in paragraphs
-  #    WORD   e_minalloc;                  // Minimum extra paragraphs needed
-  #    WORD   e_maxalloc;                  // Maximum extra paragraphs needed
-  #    WORD   e_ss;                        // Initial (relative) SS value
-  #    WORD   e_sp;                        // Initial SP value
-  #    WORD   e_csum;                      // Checksum
-  #    WORD   e_ip;                        // Initial IP value
-  #    WORD   e_cs;                        // Initial (relative) CS value
-  #    WORD   e_lfarlc;                    // File address of relocation table
-  #    WORD   e_ovno;                      // Overlay number
-  #    WORD   e_res[4];                    // Reserved words
-  #    WORD   e_oemid;                     // OEM identifier (for e_oeminfo)
-  #    WORD   e_oeminfo;                   // OEM information; e_oemid specific
-  #    WORD   e_res2[10];                  // Reserved words
-  #    LONG   e_lfanew;                    // File address of new exe header
-  #  } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;
-
-  dos_header = DOSHeader()
 
   DOS_HEADER_BYTES = bytearray.fromhex( # typedef struct _IMAGE_DOS_HEADER {      // DOS .EXE header
     '4d5a' # WORD   e_magic;                     // Magic number
@@ -123,6 +96,7 @@ def read_dos_header(f):
     raise Exception(
       'need to actually parse the DOS header instead of counting on it always to be same')
 
+  dos_header = winapi.IMAGE_DOS_HEADER()
   dos_header.e_lfanew = read_four_byte_int_little_endian(f)
 
   return dos_header
