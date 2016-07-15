@@ -207,6 +207,8 @@ def read_section_header(f):
 
 PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
+pe_header = None # used later in debugging to find the address of modules
+
 with open(PE_FILE, 'rb') as f:
 
   print('Information for PE file %s:' % PE_FILE)
@@ -220,7 +222,6 @@ with open(PE_FILE, 'rb') as f:
   pe_header = read_pe_header(f)
 
   print(utils.indent_string(winapi.pe_header_to_str(pe_header)))
-  print()
 
   # read the section table
   print('  Sections: ')
@@ -236,6 +237,8 @@ print()
 #
 # Code to debug a runnnig process
 #
+
+image_base_address = None # populated below as image loads
 
 try:
 
@@ -282,6 +285,7 @@ try:
       print(utils.indent_string(winapi.create_process_debug_info_to_str(create_process_debug_info)))
       print()
 
+      image_base_address = debug_event.u.CreateProcessInfo.lpBaseOfImage
       thread_handle = debug_event.u.CreateProcessInfo.hThread
 
     # INTERLUDE: output information on the thread we are experimentally monitoring
@@ -292,6 +296,16 @@ try:
       if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
       print(utils.indent_string(winapi.wow64_context_to_str(context)))
+      print()
+
+    if image_base_address != None:
+      # experiment with the import table
+      import_table_address = image_base_address + pe_header.image_optional_header.DataDirectory[
+        winapi.IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress
+error I'm not convinced that I've got the right address here
+      print('  Import table (at address 0x%08x):' % import_table_address)
+      print(utils.indent_string(winapi.import_table_to_str(
+        process_info.hProcess, import_table_address), '    '))
       print()
 
     # END INTERLUDE

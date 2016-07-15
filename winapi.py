@@ -1419,6 +1419,37 @@ IMAGE_DIRECTORY_ENTRY_IAT            = 12
 IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   = 13
 IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14
 
+#typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+#    union {
+#        DWORD   Characteristics;            // 0 for terminating null import descriptor
+#        DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+#    } DUMMYUNIONNAME;
+#    DWORD   TimeDateStamp;                  // 0 if not bound,
+#                                            // -1 if bound, and real date\time stamp
+#                                            //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+#                                            // O.W. date/time stamp of DLL bound to (Old BIND)
+#
+#    DWORD   ForwarderChain;                 // -1 if no forwarders
+#    DWORD   Name;
+#    DWORD   FirstThunk;                     // RVA to IAT (if bound this IAT has actual addresses)
+#} IMAGE_IMPORT_DESCRIPTOR;
+#typedef IMAGE_IMPORT_DESCRIPTOR UNALIGNED *PIMAGE_IMPORT_DESCRIPTOR;
+
+class IMAGE_IMPORT_DESCRIPTOR(ctypes.Structure):
+  class DUMMYUNIONNAME(ctypes.Union):
+    _fields_ = [
+      ('Characteristics', ctypes.wintypes.DWORD),
+      ('OriginalFirstThunk', ctypes.wintypes.DWORD)
+    ]
+
+  _fields_ = [
+    ('DUMMYUNIONNAME', DUMMYUNIONNAME),
+    ('TimeDateStamp', ctypes.wintypes.DWORD),
+    ('ForwarderChain', ctypes.wintypes.DWORD),
+    ('Name', ctypes.wintypes.DWORD),
+    ('FirstThunk', ctypes.wintypes.DWORD)
+  ]
+
 #
 # Utility functions
 #
@@ -1584,7 +1615,7 @@ def memory_basic_info_to_str(memory_basic_info):
   )
 
 def show_memory_information(process_handle, pointer):
-  raise Exception('TODO')
+  raise Exception('show_memory_information is TODO')
   #  # note that this code to get the memory information may not be correct
   #  memory_basic_info = MEMORY_BASIC_INFORMATION()
   #  status = VirtualQueryEx(
@@ -1631,15 +1662,13 @@ def read_dword_from_remote_process(process_handle, pointer):
   return rv
 
 def read_wstring_from_remote_process(process_handle, pointer):
-  p = pointer
   rv = ''
   while True:
-    i = read_word_from_remote_process(process_handle, p)
+    i = read_word_from_remote_process(process_handle, pointer)
     if i == 0:
-      #print('At 0x%08x we have string %s' % (pointer, rv))
       return rv
     rv += chr(i)
-    p += 2
+    pointer += 2
 
 def lp_image_name_to_str(process_handle, load_dll_debug_info):
   #  MSDN information about lpImageName
@@ -1772,9 +1801,8 @@ def data_directory_to_str(data_directory):
     else:
       rv += 'Unassigned or unknown directory entry (%s)' % i
 
-    rv += (':\n'
-      '  VirtualAddress: 0x%08x\n'
-      '  Size: %s\n' % (data_directory[i].VirtualAddress, data_directory[i].Size))
+    rv += (':  VirtualAddress: 0x%08x  Size: %s\n' % (
+      data_directory[i].VirtualAddress, data_directory[i].Size))
 
   return rv
 
@@ -1801,7 +1829,7 @@ def image_file_header_to_str(image_file_header):
 def image_optional_header_to_str(image_optional_header):
   return (
     'Data Directory:\n'
-    '%s\n'
+    '%s'
 
     % (utils.indent_string(data_directory_to_str(image_optional_header.DataDirectory))
     ))
@@ -1811,8 +1839,43 @@ def pe_header_to_str(pe_header):
     'Image File Header:\n'
     '%s\n'
     'Image Optional Headers:\n'
-    '%s\n'
+    '%s'
 
     % (utils.indent_string(image_file_header_to_str(pe_header.image_file_header)),
     utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
   ))
+
+def import_table_to_str(process_handle, pointer):
+  rv = ''
+
+  while True: # break when we reach the last entry
+    print('TODO Under Construction Here: 0x%08x' % pointer)
+
+    the_union = read_dword_from_remote_process(process_handle, pointer)
+    pointer += 2
+
+    if the_union == 0:
+      # no more structures
+      break
+
+    image_import_descriptor = IMAGE_IMPORT_DESCRIPTOR()
+
+    image_import_descriptor.TimeDateStamp = read_dword_from_remote_process(process_handle, pointer)
+    pointer += 2
+
+    image_import_descriptor.ForwarderChain = read_dword_from_remote_process(process_handle, pointer)
+    pointer += 2
+
+    image_import_descriptor.Name = read_dword_from_remote_process(process_handle, pointer)
+    pointer += 2
+
+    image_import_descriptor.FirstThunk = read_dword_from_remote_process(process_handle, pointer)
+    pointer += 2
+
+    if image_import_descriptor.Name == 0:
+      rv += '<< no name >>\n'
+    else:
+      name = read_wstring_from_remote_process(process_handle, image_import_descriptor.Name)
+      rv += name + '\n'
+
+  return rv
