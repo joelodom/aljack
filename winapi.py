@@ -1206,6 +1206,171 @@ IMAGE_FILE_DLL                      = 0x2000
 IMAGE_FILE_UP_SYSTEM_ONLY           = 0x4000
 IMAGE_FILE_BYTES_REVERSED_HI        = 0x8000
 
+#  typedef struct _IMAGE_FILE_HEADER {
+#    WORD    Machine;
+#    WORD    NumberOfSections;
+#    DWORD   TimeDateStamp;
+#    DWORD   PointerToSymbolTable;
+#    DWORD   NumberOfSymbols;
+#    WORD    SizeOfOptionalHeader;
+#    WORD    Characteristics;
+#} IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;
+
+class IMAGE_FILE_HEADER(ctypes.Structure):
+  _fields_ = [
+    ('Machine', ctypes.wintypes.WORD),
+    ('NumberOfSections', ctypes.wintypes.WORD),
+    ('TimeDateStamp', ctypes.wintypes.DWORD),
+    ('PointerToSymbolTable', ctypes.wintypes.DWORD),
+    ('NumberOfSymbols', ctypes.wintypes.DWORD),
+    ('SizeOfOptionalHeader', ctypes.wintypes.WORD),
+    ('Characteristics', ctypes.wintypes.WORD)
+  ]
+
+#typedef struct _IMAGE_DATA_DIRECTORY {
+#    DWORD   VirtualAddress;
+#    DWORD   Size;
+#} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
+
+class IMAGE_DATA_DIRECTORY(ctypes.Structure):
+  _fields_ = [
+    ('VirtualAddress', ctypes.wintypes.DWORD),
+    ('Size', ctypes.wintypes.DWORD)
+  ]
+
+#define IMAGE_NUMBEROF_DIRECTORY_ENTRIES    16
+IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
+
+#typedef struct _IMAGE_OPTIONAL_HEADER {
+#    //
+#    // Standard fields.
+#    //
+#
+#    WORD    Magic;
+#    BYTE    MajorLinkerVersion;
+#    BYTE    MinorLinkerVersion;
+#    DWORD   SizeOfCode;
+#    DWORD   SizeOfInitializedData;
+#    DWORD   SizeOfUninitializedData;
+#    DWORD   AddressOfEntryPoint;
+#    DWORD   BaseOfCode;
+#    DWORD   BaseOfData;
+#
+#    //
+#    // NT additional fields.
+#    //
+#
+#    DWORD   ImageBase;
+#    DWORD   SectionAlignment;
+#    DWORD   FileAlignment;
+#    WORD    MajorOperatingSystemVersion;
+#    WORD    MinorOperatingSystemVersion;
+#    WORD    MajorImageVersion;
+#    WORD    MinorImageVersion;
+#    WORD    MajorSubsystemVersion;
+#    WORD    MinorSubsystemVersion;
+#    DWORD   Win32VersionValue;
+#    DWORD   SizeOfImage;
+#    DWORD   SizeOfHeaders;
+#    DWORD   CheckSum;
+#    WORD    Subsystem;
+#    WORD    DllCharacteristics;
+#    DWORD   SizeOfStackReserve;
+#    DWORD   SizeOfStackCommit;
+#    DWORD   SizeOfHeapReserve;
+#    DWORD   SizeOfHeapCommit;
+#    DWORD   LoaderFlags;
+#    DWORD   NumberOfRvaAndSizes;
+#    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+#} IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
+
+class IMAGE_OPTIONAL_HEADER32(ctypes.Structure):
+  _fields_ = [
+    ('Magic', ctypes.wintypes.WORD),
+    ('MajorLinkerVersion', ctypes.wintypes.BYTE),
+    ('MinorLinkerVersion', ctypes.wintypes.BYTE),
+    ('SizeOfCode', ctypes.wintypes.DWORD),
+    ('SizeOfInitializedData', ctypes.wintypes.DWORD),
+    ('SizeOfUninitializedData', ctypes.wintypes.DWORD),
+    ('AddressOfEntryPoint', ctypes.wintypes.DWORD),
+    ('BaseOfCode', ctypes.wintypes.DWORD),
+    ('BaseOfData', ctypes.wintypes.DWORD),
+    ('ImageBase', ctypes.wintypes.DWORD),
+    ('SectionAlignment', ctypes.wintypes.DWORD),
+    ('FileAlignment', ctypes.wintypes.DWORD),
+    ('MajorOperatingSystemVersion', ctypes.wintypes.WORD),
+    ('MinorOperatingSystemVersion', ctypes.wintypes.WORD),
+    ('MajorImageVersion', ctypes.wintypes.WORD),
+    ('MinorImageVersion', ctypes.wintypes.WORD),
+    ('MajorSubsystemVersion', ctypes.wintypes.WORD),
+    ('MinorSubsystemVersion', ctypes.wintypes.WORD),
+    ('Win32VersionValue', ctypes.wintypes.DWORD),
+    ('SizeOfImage', ctypes.wintypes.DWORD),
+    ('SizeOfHeaders', ctypes.wintypes.DWORD),
+    ('CheckSum', ctypes.wintypes.DWORD),
+    ('Subsystem', ctypes.wintypes.WORD),
+    ('DllCharacteristics', ctypes.wintypes.WORD),
+    ('SizeOfStackReserve', ctypes.wintypes.DWORD),
+    ('SizeOfStackCommit', ctypes.wintypes.DWORD),
+    ('SizeOfHeapReserve', ctypes.wintypes.DWORD),
+    ('SizeOfHeapCommit', ctypes.wintypes.DWORD),
+    ('LoaderFlags', ctypes.wintypes.DWORD),
+    ('NumberOfRvaAndSizes', ctypes.wintypes.DWORD),
+    ('DataDirectory', IMAGE_DATA_DIRECTORY * IMAGE_NUMBEROF_DIRECTORY_ENTRIES)
+  ]
+
+#typedef struct _IMAGE_NT_HEADERS {
+#    DWORD Signature;
+#    IMAGE_FILE_HEADER FileHeader;
+#    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
+#} IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;
+
+class IMAGE_DOS_HEADER(ctypes.Structure):
+  _fields_ = [
+    ('Signature', ctypes.wintypes.DWORD),
+    ('FileHeader', IMAGE_FILE_HEADER),
+    ('OptionalHeader', IMAGE_OPTIONAL_HEADER32)
+  ]
+
+#define IMAGE_SIZEOF_SHORT_NAME              8
+IMAGE_SIZEOF_SHORT_NAME = 8
+
+#typedef struct _IMAGE_SECTION_HEADER {
+#    BYTE    Name[IMAGE_SIZEOF_SHORT_NAME];
+#    union {
+#            DWORD   PhysicalAddress;
+#            DWORD   VirtualSize;
+#    } Misc;
+#    DWORD   VirtualAddress;
+#    DWORD   SizeOfRawData;
+#    DWORD   PointerToRawData;
+#    DWORD   PointerToRelocations;
+#    DWORD   PointerToLinenumbers;
+#    WORD    NumberOfRelocations;
+#    WORD    NumberOfLinenumbers;
+#    DWORD   Characteristics;
+#} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+
+class IMAGE_SECTION_HEADER(ctypes.Structure):
+  class Misc(ctypes.Union):
+    _fields_ = [
+      ('PhysicalAddress', ctypes.wintypes.DWORD),
+      ('VirtualSize', ctypes.wintypes.DWORD)
+    ]
+
+  _fields_ = [
+    ('Name', ctypes.wintypes.BYTE * IMAGE_SIZEOF_SHORT_NAME),
+    ('Misc', Misc),
+    ('VirtualAddress', ctypes.wintypes.DWORD),
+    ('SizeOfRawData', ctypes.wintypes.DWORD),
+    ('PointerToRawData', ctypes.wintypes.DWORD),
+    ('PointerToRelocations', ctypes.wintypes.DWORD),
+    ('PointerToLinenumbers', ctypes.wintypes.DWORD),
+    ('NumberOfRelocations', ctypes.wintypes.WORD),
+    ('NumberOfLinenumbers', ctypes.wintypes.WORD),
+    ('Characteristics', ctypes.wintypes.DWORD)
+  ]
+
 #
 # Utility functions
 #
@@ -1497,3 +1662,34 @@ def context_to_str(context):
   )
 
 wow64_context_to_str = context_to_str
+
+def time_stamp_to_str(ts):
+  # "value is seconds since December 31st, 1969, at 4:00 P.M."
+  # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
+  return 'TODO'
+
+class PEHeader():
+  # a metaclass to hold various components of a PE header
+  pass
+
+def pe_header_to_str(pe_header):
+  image_file_header = pe_header.image_file_header
+
+  return (
+    'Machine: %s (0x%04x)\n'
+    'Number of sections: %s\n'
+    'Timestamp: %s (%s)\n'
+    'Symbol table offset: %s\n'
+    'Number of symbols: %s\n'
+    'Size of optional header: %s\n'
+    'Characteristics: %s (0x%04x)'
+
+    % (image_file_machine_to_str(image_file_header.Machine), image_file_header.Machine,
+    image_file_header.NumberOfSections,
+    time_stamp_to_str(image_file_header.TimeDateStamp), image_file_header.TimeDateStamp,
+    image_file_header.PointerToSymbolTable,
+    image_file_header.NumberOfSymbols,
+    image_file_header.SizeOfOptionalHeader,
+    image_file_characteristics_to_str(image_file_header.Characteristics),
+    image_file_header.Characteristics
+    ))

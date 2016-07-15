@@ -1,8 +1,6 @@
 #
 # A PE analyzer by Joel Odom
 #
-# Comments that resemble C code are probably snippets from Windows header files.
-#
 
 import sys
 import winapi
@@ -48,14 +46,11 @@ def read_four_byte_int_little_endian(f):
   bytes = read_exact_number_of_bytes(f, 4)
   return bytes[0] + 256*bytes[1] + 65536*bytes[2] + 16777216*bytes[3]
 
-def read_null_terminated_string(f, bytes_to_read):
-  '''
-  Reads a string (assumes ASCII encoding).
-  '''
-
-  bytes = read_exact_number_of_bytes(f, bytes_to_read)
-  bytes = bytes[:bytes.find(b'\0')]
-  return bytes.decode('ascii')
+def copy_bytes(dst, src, n):
+  if len(dst) != len(src) != n:
+    raise Exception('byte copy sanity check failed')
+  for i in range(n):
+    dst[i] = src[i]
 
 #
 # Code to handle PE reading and parsing
@@ -101,44 +96,6 @@ def read_dos_header(f):
 
   return dos_header
 
-def time_stamp_to_str(ts):
-  # "value is seconds since December 31st, 1969, at 4:00 P.M."
-  # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
-  return 'TODO'
-
-
-class PEHeader:
-  def __str__(self):
-    return str(self.image_file_header)
-
-class ImageFileHeader:
-  def __str__(self):
-
-    return (
-      'Machine: %s (0x%04x)\n'
-      'Number of sections: %s\n'
-      'Timestamp: %s (%s)\n'
-      'Symbol table offset: %s\n'
-      'Number of symbols: %s\n'
-      'Size of optional header: %s\n'
-      'Characteristics: %s (0x%04x)'
-
-      % (winapi.image_file_machine_to_str(self.machine), self.machine,
-      self.number_of_sections,
-      time_stamp_to_str(self.time_date_stamp), self.time_date_stamp,
-      self.pointer_to_symbol_table,
-      self.number_of_symbols,
-      self.size_of_optional_header,
-      winapi.image_file_characteristics_to_str(self.characteristics), self.characteristics
-      ))
-
-class ImageOptionalHeader:
-  pass
-
-class ImageDataDirectory:
-  pass
-
-IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16
 
 def read_pe_header(f):
   '''
@@ -147,13 +104,7 @@ def read_pe_header(f):
   The file position should be queued to the header to read.
   '''
 
-  pe_header = PEHeader()
-
-  #typedef struct _IMAGE_NT_HEADERS {
-  #    DWORD Signature;
-  #    IMAGE_FILE_HEADER FileHeader;
-  #    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
-  #} IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;
+  pe_header = winapi.PEHeader()
 
   # check the signature
 
@@ -163,136 +114,69 @@ def read_pe_header(f):
 
   # read the image file header
 
-  pe_header.image_file_header = ImageFileHeader()
+  pe_header.image_file_header = winapi.IMAGE_FILE_HEADER()
 
-  #  typedef struct _IMAGE_FILE_HEADER {
-  #    WORD    Machine;
-  #    WORD    NumberOfSections;
-  #    DWORD   TimeDateStamp;
-  #    DWORD   PointerToSymbolTable;
-  #    DWORD   NumberOfSymbols;
-  #    WORD    SizeOfOptionalHeader;
-  #    WORD    Characteristics;
-  #} IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;
-
-  pe_header.image_file_header.machine = read_two_byte_int_little_endian(f)
-  pe_header.image_file_header.number_of_sections = read_two_byte_int_little_endian(f)
-  pe_header.image_file_header.time_date_stamp = read_four_byte_int_little_endian(f)
-  pe_header.image_file_header.pointer_to_symbol_table = read_four_byte_int_little_endian(f)
-  pe_header.image_file_header.number_of_symbols = read_four_byte_int_little_endian(f)
-  pe_header.image_file_header.size_of_optional_header = read_two_byte_int_little_endian(f)
-  pe_header.image_file_header.characteristics = read_two_byte_int_little_endian(f)
+  pe_header.image_file_header.Machine = read_two_byte_int_little_endian(f)
+  pe_header.image_file_header.NumberOfSections = read_two_byte_int_little_endian(f)
+  pe_header.image_file_header.TimeDateStamp = read_four_byte_int_little_endian(f)
+  pe_header.image_file_header.PointerToSymbolTable = read_four_byte_int_little_endian(f)
+  pe_header.image_file_header.NumberOfSymbols = read_four_byte_int_little_endian(f)
+  pe_header.image_file_header.SizeOfOptionalHeader = read_two_byte_int_little_endian(f)
+  pe_header.image_file_header.Characteristics = read_two_byte_int_little_endian(f)
 
   # read the optional header
 
-  pe_header.image_optional_header = ImageOptionalHeader()
+  pe_header.image_optional_header = winapi.IMAGE_OPTIONAL_HEADER32()
   position_before_optional_header = f.tell()
 
-  #typedef struct _IMAGE_OPTIONAL_HEADER {
-  #    //
-  #    // Standard fields.
-  #    //
-  #
-  #    WORD    Magic;
-  #    BYTE    MajorLinkerVersion;
-  #    BYTE    MinorLinkerVersion;
-  #    DWORD   SizeOfCode;
-  #    DWORD   SizeOfInitializedData;
-  #    DWORD   SizeOfUninitializedData;
-  #    DWORD   AddressOfEntryPoint;
-  #    DWORD   BaseOfCode;
-  #    DWORD   BaseOfData;
-  #
-  #    //
-  #    // NT additional fields.
-  #    //
-  #
-  #    DWORD   ImageBase;
-  #    DWORD   SectionAlignment;
-  #    DWORD   FileAlignment;
-  #    WORD    MajorOperatingSystemVersion;
-  #    WORD    MinorOperatingSystemVersion;
-  #    WORD    MajorImageVersion;
-  #    WORD    MinorImageVersion;
-  #    WORD    MajorSubsystemVersion;
-  #    WORD    MinorSubsystemVersion;
-  #    DWORD   Win32VersionValue;
-  #    DWORD   SizeOfImage;
-  #    DWORD   SizeOfHeaders;
-  #    DWORD   CheckSum;
-  #    WORD    Subsystem;
-  #    WORD    DllCharacteristics;
-  #    DWORD   SizeOfStackReserve;
-  #    DWORD   SizeOfStackCommit;
-  #    DWORD   SizeOfHeapReserve;
-  #    DWORD   SizeOfHeapCommit;
-  #    DWORD   LoaderFlags;
-  #    DWORD   NumberOfRvaAndSizes;
-  #    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
-  #} IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
+  pe_header.image_optional_header.Magic = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MajorLinkerVersion = read_one_byte_int(f)
+  pe_header.image_optional_header.MinorLinkerVersion = read_one_byte_int(f)
+  pe_header.image_optional_header.SizeOfCode = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfInitializedData = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfUninitializedData = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.AddressOfEntryPoint = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.BaseOfCode = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.BaseOfData = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.ImageBase = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SectionAlignment = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.FileAlignment = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.MajorOperatingSystemVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MinorOperatingSystemVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MajorImageVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MinorImageVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MajorSubsystemVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.MinorSubsystemVersion = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.Win32VersionValue = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfImage = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfHeaders = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.CheckSum = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.Subsystem = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.DllCharacteristics = read_two_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfStackReserve = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfStackCommit = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfHeapReserve = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.SizeOfHeapCommit = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.LoaderFlags = read_four_byte_int_little_endian(f)
+  pe_header.image_optional_header.NumberOfRvaAndSizes = read_four_byte_int_little_endian(f)
 
-  pe_header.image_optional_header.magic = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.major_linker_version = read_one_byte_int(f)
-  pe_header.image_optional_header.minor_linker_version = read_one_byte_int(f)
-  pe_header.image_optional_header.size_of_code = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_initialized_data = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_uninitialized_data = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.address_of_entry_point = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.base_of_code = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.base_of_data = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.image_base = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.section_alignment = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.file_alignment = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.major_operating_system_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.minor_operating_system_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.major_image_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.minor_image_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.major_subsystem_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.minor_subsystem_version = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.win32_version_value = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_image = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_headers = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.check_sum = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.subsystem = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.dll_characteristics = read_two_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_stack_reserve = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_stack_commit = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_heap_reserve = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.size_of_heap_commit = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.loader_flags = read_four_byte_int_little_endian(f)
-  pe_header.image_optional_header.number_of_rva_and_sizes = read_four_byte_int_little_endian(f)
-
-  pe_header.image_optional_header.data_directory = []
-
-  for i in range(IMAGE_NUMBEROF_DIRECTORY_ENTRIES):
-    image_data_directory = ImageDataDirectory()
-
-    #typedef struct _IMAGE_DATA_DIRECTORY {
-    #    DWORD   VirtualAddress;
-    #    DWORD   Size;
-    #} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
-
-    image_data_directory.virtual_address = read_four_byte_int_little_endian(f)
-    image_data_directory.size = read_four_byte_int_little_endian(f)
-
-    pe_header.image_optional_header.data_directory.append(image_data_directory)
+  for i in range(winapi.IMAGE_NUMBEROF_DIRECTORY_ENTRIES):
+    image_data_directory = winapi.IMAGE_DATA_DIRECTORY()
+    image_data_directory.VirtualAddress = read_four_byte_int_little_endian(f)
+    image_data_directory.Size = read_four_byte_int_little_endian(f)
+    pe_header.image_optional_header.DataDirectory[i] = image_data_directory
 
   # sanity check position against size_of_optional_header
 
   position_after_optional_header = f.tell()
 
   optional_header_bytes_read = position_after_optional_header - position_before_optional_header
-  if optional_header_bytes_read != pe_header.image_file_header.size_of_optional_header:
+  if optional_header_bytes_read != pe_header.image_file_header.SizeOfOptionalHeader:
     raise Exception('optional header size check failed (read %s bytes)'
       % optional_header_bytes_read)
 
   return pe_header
 
-
-class ImageSectionHeader:
-  pass
-
-IMAGE_SIZEOF_SHORT_NAME = 8
 
 def read_section_header(f):
   '''
@@ -301,34 +185,20 @@ def read_section_header(f):
   The file position should be queued to the table to read.
   '''
 
-  section_header = ImageSectionHeader()
+  section_header = winapi.IMAGE_SECTION_HEADER()
 
-  #typedef struct _IMAGE_SECTION_HEADER {
-  #    BYTE    Name[IMAGE_SIZEOF_SHORT_NAME];
-  #    union {
-  #            DWORD   PhysicalAddress;
-  #            DWORD   VirtualSize;
-  #    } Misc;
-  #    DWORD   VirtualAddress;
-  #    DWORD   SizeOfRawData;
-  #    DWORD   PointerToRawData;
-  #    DWORD   PointerToRelocations;
-  #    DWORD   PointerToLinenumbers;
-  #    WORD    NumberOfRelocations;
-  #    WORD    NumberOfLinenumbers;
-  #    DWORD   Characteristics;
-  #} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+  copy_bytes(section_header.Name, read_exact_number_of_bytes(f, winapi.IMAGE_SIZEOF_SHORT_NAME),
+    winapi.IMAGE_SIZEOF_SHORT_NAME)
 
-  section_header.name = read_null_terminated_string(f, IMAGE_SIZEOF_SHORT_NAME)
-  section_header.misc = read_four_byte_int_little_endian(f)
-  section_header.virtual_address = read_four_byte_int_little_endian(f)
-  section_header.size_of_raw_data = read_four_byte_int_little_endian(f)
-  section_header.pointer_to_raw_data = read_four_byte_int_little_endian(f)
-  section_header.pointer_to_relocations = read_four_byte_int_little_endian(f)
-  section_header.pointer_to_linenumbers = read_four_byte_int_little_endian(f)
-  section_header.number_of_relocations = read_two_byte_int_little_endian(f)
-  section_header.number_of_linenumbers = read_two_byte_int_little_endian(f)
-  section_header.characteristics = read_four_byte_int_little_endian(f)
+  section_header.Misc.PhysicalAddress = read_four_byte_int_little_endian(f)
+  section_header.VirtualAddress = read_four_byte_int_little_endian(f)
+  section_header.SizeOfRawData = read_four_byte_int_little_endian(f)
+  section_header.PointerToRawData = read_four_byte_int_little_endian(f)
+  section_header.PointerToRelocations = read_four_byte_int_little_endian(f)
+  section_header.PointerToLinenumbers = read_four_byte_int_little_endian(f)
+  section_header.NumberOfRelocations = read_two_byte_int_little_endian(f)
+  section_header.NumberOfLinenumbers = read_two_byte_int_little_endian(f)
+  section_header.Characteristics = read_four_byte_int_little_endian(f)
 
   return section_header
 
@@ -339,6 +209,9 @@ PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
 with open(PE_FILE, 'rb') as f:
 
+  print('Information for PE file %s:' % PE_FILE)
+  print()
+
   # read the DOS header
   dos_header = read_dos_header(f)
 
@@ -346,13 +219,17 @@ with open(PE_FILE, 'rb') as f:
   f.seek(dos_header.e_lfanew)
   pe_header = read_pe_header(f)
 
-  print(pe_header)
+  print(utils.indent_string(winapi.pe_header_to_str(pe_header)))
+  print()
 
   # read the section table
-  print('Sections: ')
-  for i in range(pe_header.image_file_header.number_of_sections):
+  print('  Sections: ')
+  for i in range(pe_header.image_file_header.NumberOfSections):
     section_header = read_section_header(f)
-    print(section_header.name)
+    name = ''
+    for b in section_header.Name:
+      name += chr(b)
+    print('    %s' % name)
 
 print()
 
@@ -377,6 +254,9 @@ try:
     winapi.FALSE, creation_flags, winapi.nullptr, winapi.nullptr,
     ctypes.pointer(startup_info), ctypes.pointer(process_info)):
       raise Exception('CreateProcess failed')
+
+  print('== Debug Events ==')
+  print()
 
   while True: # debugger loop
 
