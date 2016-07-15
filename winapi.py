@@ -1371,6 +1371,54 @@ class IMAGE_SECTION_HEADER(ctypes.Structure):
     ('Characteristics', ctypes.wintypes.DWORD)
   ]
 
+#WINBASEAPI
+#FARPROC
+#WINAPI
+#GetProcAddress (
+#    __in HMODULE hModule,
+#    __in LPCSTR lpProcName
+#    );
+
+FARPROC = ctypes.wintypes.LPVOID # this may not be right
+
+GetProcAddress = ctypes.windll.kernel32.GetProcAddress
+GetProcAddress.restype = FARPROC
+GetProcAddress.argtypes = [ ctypes.wintypes.HMODULE, ctypes.wintypes.LPCSTR ]
+
+#define IMAGE_DIRECTORY_ENTRY_EXPORT          0   // Export Directory
+#define IMAGE_DIRECTORY_ENTRY_IMPORT          1   // Import Directory
+#define IMAGE_DIRECTORY_ENTRY_RESOURCE        2   // Resource Directory
+#define IMAGE_DIRECTORY_ENTRY_EXCEPTION       3   // Exception Directory
+#define IMAGE_DIRECTORY_ENTRY_SECURITY        4   // Security Directory
+#define IMAGE_DIRECTORY_ENTRY_BASERELOC       5   // Base Relocation Table
+#define IMAGE_DIRECTORY_ENTRY_DEBUG           6   // Debug Directory
+#//      IMAGE_DIRECTORY_ENTRY_COPYRIGHT       7   // (X86 usage)
+#define IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    7   // Architecture Specific Data
+#define IMAGE_DIRECTORY_ENTRY_GLOBALPTR       8   // RVA of GP
+#define IMAGE_DIRECTORY_ENTRY_TLS             9   // TLS Directory
+#define IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    10   // Load Configuration Directory
+#define IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   11   // Bound Import Directory in headers
+#define IMAGE_DIRECTORY_ENTRY_IAT            12   // Import Address Table
+#define IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   13   // Delay Load Import Descriptors
+#define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR 14   // COM Runtime descriptor
+
+IMAGE_DIRECTORY_ENTRY_EXPORT         =  0
+IMAGE_DIRECTORY_ENTRY_IMPORT         =  1
+IMAGE_DIRECTORY_ENTRY_RESOURCE       =  2
+IMAGE_DIRECTORY_ENTRY_EXCEPTION      =  3
+IMAGE_DIRECTORY_ENTRY_SECURITY       =  4
+IMAGE_DIRECTORY_ENTRY_BASERELOC      =  5
+IMAGE_DIRECTORY_ENTRY_DEBUG          =  6
+IMAGE_DIRECTORY_ENTRY_COPYRIGHT      =  7
+IMAGE_DIRECTORY_ENTRY_ARCHITECTURE   =  7
+IMAGE_DIRECTORY_ENTRY_GLOBALPTR      =  8
+IMAGE_DIRECTORY_ENTRY_TLS            =  9
+IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    = 10
+IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   = 11
+IMAGE_DIRECTORY_ENTRY_IAT            = 12
+IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   = 13
+IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14
+
 #
 # Utility functions
 #
@@ -1593,11 +1641,8 @@ def read_wstring_from_remote_process(process_handle, pointer):
     rv += chr(i)
     p += 2
 
-def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
-  if not load_dll_debug_info.fUnicode:
-    raise Exception('need to handle non-Unicode')
-
-  #  lpImageName
+def lp_image_name_to_str(process_handle, load_dll_debug_info):
+  #  MSDN information about lpImageName
   #
   #  A pointer to the file name associated with hFile. This member may be NULL,
   #  or it may contain the address of a string pointer in the address space of
@@ -1613,6 +1658,9 @@ def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
   #  provide this information in the case of debugging events that originate
   #  from a call to the DebugActiveProcess function.
 
+  if not load_dll_debug_info.fUnicode:
+    raise Exception('need to handle non-Unicode')
+
   image_name = '<< no image name available >>'
 
   if load_dll_debug_info.lpImageName:
@@ -1620,12 +1668,20 @@ def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
     if p:
       image_name = read_wstring_from_remote_process(process_handle, p)
 
+  return image_name
+
+def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
+  if not load_dll_debug_info.fUnicode:
+    raise Exception('need to handle non-Unicode')
+
   return (
     'hFile: 0x%x\n'
+    'lpBaseOfDll: 0x%08x\n'
     'lpImageName: %s\n'
     'fUnicode: %s'
     % (load_dll_debug_info.hFile,
-    image_name,
+    load_dll_debug_info.lpBaseOfDll,
+    lp_image_name_to_str(process_handle, load_dll_debug_info),
     load_dll_debug_info.fUnicode)
   )
 
@@ -1672,9 +1728,57 @@ class PEHeader():
   # a metaclass to hold various components of a PE header
   pass
 
-def pe_header_to_str(pe_header):
-  image_file_header = pe_header.image_file_header
+def data_directory_to_str(data_directory):
+  '''
+  Convert a data directory to a string.
 
+  data_directory is an array IMAGE_NUMBEROF_DIRECTORY_ENTRIES-length array of IMAGE_DATA_DIRECTORY
+  structures.
+  '''
+
+  rv = ''
+
+  for i in range(IMAGE_NUMBEROF_DIRECTORY_ENTRIES):
+    if i == IMAGE_DIRECTORY_ENTRY_EXPORT:
+      rv += 'IMAGE_DIRECTORY_ENTRY_EXPORT'
+    elif i == IMAGE_DIRECTORY_ENTRY_IMPORT:
+      rv += 'IMAGE_DIRECTORY_ENTRY_IMPORT'
+    elif i == IMAGE_DIRECTORY_ENTRY_RESOURCE:
+      rv += 'IMAGE_DIRECTORY_ENTRY_RESOURCE'
+    elif i == IMAGE_DIRECTORY_ENTRY_EXCEPTION:
+      rv += 'IMAGE_DIRECTORY_ENTRY_EXCEPTION'
+    elif i == IMAGE_DIRECTORY_ENTRY_SECURITY:
+      rv += 'IMAGE_DIRECTORY_ENTRY_SECURITY'
+    elif i == IMAGE_DIRECTORY_ENTRY_BASERELOC:
+      rv += 'IMAGE_DIRECTORY_ENTRY_BASERELOC'
+    elif i == IMAGE_DIRECTORY_ENTRY_DEBUG:
+      rv += 'IMAGE_DIRECTORY_ENTRY_DEBUG'
+    elif i == IMAGE_DIRECTORY_ENTRY_ARCHITECTURE:
+      rv += 'IMAGE_DIRECTORY_ENTRY_ARCHITECTURE'
+    elif i == IMAGE_DIRECTORY_ENTRY_GLOBALPTR:
+      rv += 'IMAGE_DIRECTORY_ENTRY_GLOBALPTR'
+    elif i == IMAGE_DIRECTORY_ENTRY_TLS:
+      rv += 'IMAGE_DIRECTORY_ENTRY_TLS'
+    elif i == IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG:
+      rv += 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG'
+    elif i == IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT:
+      rv += 'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT'
+    elif i == IMAGE_DIRECTORY_ENTRY_IAT:
+      rv += 'IMAGE_DIRECTORY_ENTRY_IAT'
+    elif i == IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT:
+      rv += 'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT'
+    elif i == IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR:
+      rv += 'IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR'
+    else:
+      rv += 'Unassigned or unknown directory entry (%s)' % i
+
+    rv += (':\n'
+      '  VirtualAddress: 0x%08x\n'
+      '  Size: %s\n' % (data_directory[i].VirtualAddress, data_directory[i].Size))
+
+  return rv
+
+def image_file_header_to_str(image_file_header):
   return (
     'Machine: %s (0x%04x)\n'
     'Number of sections: %s\n'
@@ -1682,7 +1786,7 @@ def pe_header_to_str(pe_header):
     'Symbol table offset: %s\n'
     'Number of symbols: %s\n'
     'Size of optional header: %s\n'
-    'Characteristics: %s (0x%04x)'
+    'Characteristics: %s (0x%04x)\n'
 
     % (image_file_machine_to_str(image_file_header.Machine), image_file_header.Machine,
     image_file_header.NumberOfSections,
@@ -1693,3 +1797,22 @@ def pe_header_to_str(pe_header):
     image_file_characteristics_to_str(image_file_header.Characteristics),
     image_file_header.Characteristics
     ))
+
+def image_optional_header_to_str(image_optional_header):
+  return (
+    'Data Directory:\n'
+    '%s\n'
+
+    % (utils.indent_string(data_directory_to_str(image_optional_header.DataDirectory))
+    ))
+
+def pe_header_to_str(pe_header):
+  return (
+    'Image File Header:\n'
+    '%s\n'
+    'Image Optional Headers:\n'
+    '%s\n'
+
+    % (utils.indent_string(image_file_header_to_str(pe_header.image_file_header)),
+    utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
+  ))

@@ -1,0 +1,153 @@
+Microsoft (R) COFF/PE Dumper Version 10.00.40219.01
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file stack1.exe
+
+PE signature found
+
+File Type: EXECUTABLE IMAGE
+
+FILE HEADER VALUES
+             14C machine (x86)
+               2 number of sections
+               0 time date stamp Wed Dec 31 19:00:00 1969
+               0 file pointer to symbol table
+               0 number of symbols
+              E0 size of optional header
+             30F characteristics
+                   Relocations stripped
+                   Executable
+                   Line numbers stripped
+                   Symbols stripped
+                   32 bit word machine
+                   Debug information stripped
+
+OPTIONAL HEADER VALUES
+             10B magic # (PE32)
+            6.00 linker version
+               0 size of code
+               0 size of initialized data
+               0 size of uninitialized data
+            1060 entry point (00401060)
+            1000 base of code
+            2000 base of data
+          400000 image base (00400000 to 004020EF)
+            1000 section alignment
+             200 file alignment
+            4.00 operating system version
+            0.00 image version
+            4.00 subsystem version
+               0 Win32 version
+            20F0 size of image
+             200 size of headers
+               0 checksum
+               3 subsystem (Windows CUI)
+               0 DLL characteristics
+          100000 size of stack reserve
+            1000 size of stack commit
+          100000 size of heap reserve
+            1000 size of heap commit
+               0 loader flags
+              10 number of directories
+               0 [       0] RVA [size] of Export Directory
+            2040 [      28] RVA [size] of Import Directory
+               0 [       0] RVA [size] of Resource Directory
+               0 [       0] RVA [size] of Exception Directory
+               0 [       0] RVA [size] of Certificates Directory
+               0 [       0] RVA [size] of Base Relocation Directory
+               0 [       0] RVA [size] of Debug Directory
+               0 [       0] RVA [size] of Architecture Directory
+               0 [       0] RVA [size] of Global Pointer Directory
+               0 [       0] RVA [size] of Thread Storage Directory
+               0 [       0] RVA [size] of Load Configuration Directory
+               0 [       0] RVA [size] of Bound Import Directory
+            2068 [      1C] RVA [size] of Import Address Table Directory
+               0 [       0] RVA [size] of Delay Import Directory
+               0 [       0] RVA [size] of COM Descriptor Directory
+               0 [       0] RVA [size] of Reserved Directory
+
+
+SECTION HEADER #1
+   .text name
+     108 virtual size
+    1000 virtual address (00401000 to 00401107)
+     200 size of raw data
+     200 file pointer to raw data (00000200 to 000003FF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+60000020 flags
+         Code
+         Execute Read
+
+RAW DATA #1
+  00401000: 55 89 E5 81 EC 54 00 00 00 90 8D 45 FC 50 8D 45  U.å.ìT.....EüP.E
+  00401010: AC 50 B8 00 20 40 00 50 E8 BB 00 00 00 83 C4 0C  ¬P¸. @.Pè»....Ä.
+  00401020: 8D 45 AC 50 E8 B7 00 00 00 83 C4 04 8B 45 FC 81  .E¬Pè·....Ä..Eü.
+  00401030: F8 44 43 42 41 0F 85 0E 00 00 00 B8 18 20 40 00  øDCBA......¸. @.
+  00401040: 50 E8 92 00 00 00 83 C4 04 C9 C3 00 00 00 00 00  Pè.....Ä.ÉÃ.....
+  00401050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  00401060: 55 89 E5 81 EC 14 00 00 00 90 B8 00 00 00 00 89  U.å.ì.....¸.....
+  00401070: 45 EC B8 00 00 03 00 50 B8 00 00 01 00 50 E8 65  Eì¸....P¸....Pèe
+  00401080: 00 00 00 83 C4 08 B8 01 00 00 00 50 E8 5F 00 00  ....Ä.¸....Pè_..
+  00401090: 00 83 C4 04 8D 45 EC 50 B8 00 00 00 00 50 8D 45  ..Ä..EìP¸....P.E
+  004010A0: F4 50 8D 45 F8 50 8D 45 FC 50 E8 49 00 00 00 83  ôP.EøP.EüPèI....
+  004010B0: C4 14 8B 45 F4 50 8B 45 F8 50 8B 45 FC 50 E8 3D  Ä..EôP.EøP.EüPè=
+  004010C0: FF FF FF 83 C4 0C 89 45 F0 8B 45 F0 50 E8 2E 00  ÿÿÿ.Ä..Eð.EðPè..
+  004010D0: 00 00 83 C4 04 C9 C3 00 FF 25 68 20 40 00 00 00  ...Ä.ÉÃ.ÿ%h @...
+  004010E0: FF 25 6C 20 40 00 00 00 FF 25 70 20 40 00 00 00  ÿ%l @...ÿ%p @...
+  004010F0: FF 25 74 20 40 00 00 00 FF 25 78 20 40 00 00 00  ÿ%t @...ÿ%x @...
+  00401100: FF 25 7C 20 40 00 00 00                          ÿ%| @...
+
+SECTION HEADER #2
+   .data name
+      F0 virtual size
+    2000 virtual address (00402000 to 004020EF)
+     200 size of raw data
+     400 file pointer to raw data (00000400 to 000005FF)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+C0000040 flags
+         Initialized Data
+         Read Write
+
+RAW DATA #2
+  00402000: 62 75 66 3A 20 25 30 38 78 20 63 6F 6F 6B 69 65  buf: %08x cookie
+  00402010: 3A 20 25 30 38 78 0A 00 79 6F 75 20 77 69 6E 21  : %08x..you win!
+  00402020: 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  00402030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  00402040: 84 20 00 00 00 00 00 00 00 00 00 00 A0 20 00 00  . ..........  ..
+  00402050: 68 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00  h ..............
+  00402060: 00 00 00 00 00 00 00 00 AB 20 00 00 B4 20 00 00  ........« ..´ ..
+  00402070: BB 20 00 00 C8 20 00 00 D9 20 00 00 E9 20 00 00  » ..È ..Ù ..é ..
+  00402080: 00 00 00 00 AB 20 00 00 B4 20 00 00 BB 20 00 00  ....« ..´ ..» ..
+  00402090: C8 20 00 00 D9 20 00 00 E9 20 00 00 00 00 00 00  È ..Ù ..é ......
+  004020A0: 6D 73 76 63 72 74 2E 64 6C 6C 00 00 00 70 72 69  msvcrt.dll...pri
+  004020B0: 6E 74 66 00 00 00 67 65 74 73 00 00 00 5F 63 6F  ntf...gets..._co
+  004020C0: 6E 74 72 6F 6C 66 70 00 00 00 5F 5F 73 65 74 5F  ntrolfp...__set_
+  004020D0: 61 70 70 5F 74 79 70 65 00 00 00 5F 5F 67 65 74  app_type...__get
+  004020E0: 6D 61 69 6E 61 72 67 73 00 00 00 65 78 69 74 00  mainargs...exit.
+
+  Section contains the following imports:
+
+    msvcrt.dll
+                402068 Import Address Table
+                402084 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                    0 printf
+                    0 gets
+                    0 _controlfp
+                    0 __set_app_type
+                    0 __getmainargs
+                    0 exit
+
+  Summary
+
+        1000 .data
+        1000 .text
