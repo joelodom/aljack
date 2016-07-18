@@ -1319,19 +1319,6 @@ class IMAGE_OPTIONAL_HEADER32(ctypes.Structure):
     ('DataDirectory', IMAGE_DATA_DIRECTORY * IMAGE_NUMBEROF_DIRECTORY_ENTRIES)
   ]
 
-#typedef struct _IMAGE_NT_HEADERS {
-#    DWORD Signature;
-#    IMAGE_FILE_HEADER FileHeader;
-#    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
-#} IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;
-
-class IMAGE_DOS_HEADER(ctypes.Structure):
-  _fields_ = [
-    ('Signature', ctypes.wintypes.DWORD),
-    ('FileHeader', IMAGE_FILE_HEADER),
-    ('OptionalHeader', IMAGE_OPTIONAL_HEADER32)
-  ]
-
 #define IMAGE_SIZEOF_SHORT_NAME              8
 IMAGE_SIZEOF_SHORT_NAME = 8
 
