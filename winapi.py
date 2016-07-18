@@ -1437,6 +1437,17 @@ class IMAGE_IMPORT_DESCRIPTOR(ctypes.Structure):
     ('FirstThunk', ctypes.wintypes.DWORD)
   ]
 
+#typedef struct _IMAGE_IMPORT_BY_NAME {
+#    WORD    Hint;
+#    BYTE    Name[1];
+#} IMAGE_IMPORT_BY_NAME, *PIMAGE_IMPORT_BY_NAME;
+
+class IMAGE_IMPORT_BY_NAME(ctypes.Structure):
+  _fields_ = [
+    ('Hint', ctypes.wintypes.WORD),
+    ('Name', ctypes.wintypes.BYTE * 1) # GOOFED!!!  really the RVA of an ASCIIZ string
+  ]
+
 #
 # Utility functions
 #
@@ -1863,6 +1874,25 @@ def pe_header_to_str(pe_header):
     utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
   ))
 
+def image_import_by_name_to_str(process_handle, image_base_address, rva):
+  # takes a pointer to an IMAGE_IMPORT_BY_NAME
+  # because of the weird declaration in winnt.h, we have to read this manually
+  name = read_string_from_remote_process(process_handle, image_base_address + rva + 2)
+  return 'Name: %s' % name
+
+def image_import_by_name_array_to_str(process_handle, image_base_address, rva):
+  pointer = image_base_address + rva
+  rv = ''
+
+  while True:
+    struct_rva = read_dword_from_remote_process(process_handle, pointer)
+    if struct_rva == 0:
+      break
+    rv += '%s\n' % image_import_by_name_to_str(process_handle, image_base_address, struct_rva)
+    pointer += 4
+
+  return rv
+
 def import_table_to_str(process_handle, image_base_address, rva):
   pointer = image_base_address + rva
   rv = ''
@@ -1871,17 +1901,25 @@ def import_table_to_str(process_handle, image_base_address, rva):
     image_import_descriptor = IMAGE_IMPORT_DESCRIPTOR()
     read_structure_from_remote_process(process_handle, pointer, image_import_descriptor)
 
-    if image_import_descriptor.DUMMYUNIONNAME.Characteristics == 0:
+    if image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk == 0:
       # no more structures
       break
 
-    if image_import_descriptor.Name == 0:
-      rv += '<< no name >>\n'
-    else:
-      name = read_string_from_remote_process(process_handle,
-        image_base_address + image_import_descriptor.Name)
-    rv += name + '\n'
+    name = '<< no name >>'
+    if image_import_descriptor.Name != 0:
+      name = read_string_from_remote_process(
+        process_handle, image_base_address + image_import_descriptor.Name)
 
+    rv +=(
+      'Name: %s\n'
+      '  Original First Thunk RVA: 0x%08x\n'
+      '%s' # hint name array
+      % (
+      name,
+      image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
+      utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+        image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk), '    ')
+    ))
 
     pointer += ctypes.sizeof(image_import_descriptor)
 
