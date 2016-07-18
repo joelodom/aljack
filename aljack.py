@@ -200,12 +200,11 @@ try:
 
     if image_base_address != None:
       # experiment with the import table
-      import_table_address = image_base_address + pe_header.image_optional_header.DataDirectory[
-        winapi.IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress
-      #error I'm not convinced that I've got the right address here
-      print('  Import table (at address 0x%08x):' % import_table_address)
+      import_table_rva = pe_header.image_optional_header.DataDirectory[
+        winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
+      print('  Import table (at RVA 0x%08x):' % import_table_rva)
       print(utils.indent_string(winapi.import_table_to_str(
-        process_info.hProcess, import_table_address), '    '))
+        process_info.hProcess, image_base_address, import_table_rva), '    '))
       print()
 
     # END INTERLUDE

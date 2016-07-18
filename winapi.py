@@ -1616,6 +1616,20 @@ def show_memory_information(process_handle, pointer):
   #  raise Exception('ReadProcessMemory failed to read 0x%08x' % pointer)
 
 
+def read_byte_from_remote_process(process_handle, pointer):
+  '''
+  Reads a byte from a remote process.
+
+  Returns the byte as an integer.
+  '''
+
+  #print('Trying to read one byte from 0x%08x.' % pointer)
+  buf = ctypes.create_string_buffer(1) # 1-byte buffer, initialized to null
+  if not ReadProcessMemory(process_handle, pointer, buf, 1, nullptr):
+    show_memory_information(process_handle, pointer)
+  #print('At 0x%08x we have byte 0x%02x.' % (pointer, buf[0][0]))
+  return buf[0][0]
+
 def read_word_from_remote_process(process_handle, pointer):
   '''
   Reads a word from a remote process.
@@ -1624,10 +1638,8 @@ def read_word_from_remote_process(process_handle, pointer):
   '''
 
   buf = ctypes.create_string_buffer(2) # 2-byte buffer, initialized to nulls
-
   if not ReadProcessMemory(process_handle, pointer, buf, 2, nullptr):
     show_memory_information(process_handle, pointer)
-
   rv = (buf.raw[1] << 8) + buf.raw[0]
   #print('At 0x%08x we have word 0x%04x.' % (pointer, rv))
   return rv
@@ -1640,10 +1652,8 @@ def read_dword_from_remote_process(process_handle, pointer):
   '''
 
   buf = ctypes.create_string_buffer(4) # 4-byte buffer, initialized to nulls
-
   if not ReadProcessMemory(process_handle, pointer, buf, 4, nullptr):
     show_memory_information(process_handle, pointer)
-
   rv = (buf.raw[3] << 24) + (buf.raw[2] << 16) + (buf.raw[1] << 8) + buf.raw[0]
   #print('At 0x%08x we have dword 0x%08x.' % (pointer, rv))
   return rv
@@ -1656,6 +1666,27 @@ def read_wstring_from_remote_process(process_handle, pointer):
       return rv
     rv += chr(i)
     pointer += 2
+
+def read_string_from_remote_process(process_handle, pointer):
+  #print('About to read string at 0x%08x' % pointer)
+  rv = ''
+  while True:
+    i = read_byte_from_remote_process(process_handle, pointer)
+    if i == 0:
+      return rv
+    rv += chr(i)
+    pointer += 1
+
+def read_structure_from_remote_process(process_handle, pointer, structure):
+  '''
+  Reads a structure from a remote process.
+  '''
+
+  #print('Trying to read %s bytes from 0x%08x.' % (ctypes.sizeof(structure), pointer))
+  buf = ctypes.create_string_buffer(ctypes.sizeof(structure)) # initialized to nulls
+  if not ReadProcessMemory(process_handle, pointer, buf, ctypes.sizeof(structure), nullptr):
+    show_memory_information(process_handle, pointer)
+  ctypes.memmove(ctypes.addressof(structure), buf, ctypes.sizeof(structure))
 
 def lp_image_name_to_str(process_handle, load_dll_debug_info):
   #  MSDN information about lpImageName
@@ -1832,37 +1863,26 @@ def pe_header_to_str(pe_header):
     utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
   ))
 
-def import_table_to_str(process_handle, pointer):
+def import_table_to_str(process_handle, image_base_address, rva):
+  pointer = image_base_address + rva
   rv = ''
 
   while True: # break when we reach the last entry
-    print('TODO Under Construction Here: 0x%08x' % pointer)
+    image_import_descriptor = IMAGE_IMPORT_DESCRIPTOR()
+    read_structure_from_remote_process(process_handle, pointer, image_import_descriptor)
 
-    the_union = read_dword_from_remote_process(process_handle, pointer)
-    pointer += 2
-
-    if the_union == 0:
+    if image_import_descriptor.DUMMYUNIONNAME.Characteristics == 0:
       # no more structures
       break
-
-    image_import_descriptor = IMAGE_IMPORT_DESCRIPTOR()
-
-    image_import_descriptor.TimeDateStamp = read_dword_from_remote_process(process_handle, pointer)
-    pointer += 2
-
-    image_import_descriptor.ForwarderChain = read_dword_from_remote_process(process_handle, pointer)
-    pointer += 2
-
-    image_import_descriptor.Name = read_dword_from_remote_process(process_handle, pointer)
-    pointer += 2
-
-    image_import_descriptor.FirstThunk = read_dword_from_remote_process(process_handle, pointer)
-    pointer += 2
 
     if image_import_descriptor.Name == 0:
       rv += '<< no name >>\n'
     else:
-      name = read_wstring_from_remote_process(process_handle, image_import_descriptor.Name)
-      rv += name + '\n'
+      name = read_string_from_remote_process(process_handle,
+        image_base_address + image_import_descriptor.Name)
+    rv += name + '\n'
+
+
+    pointer += ctypes.sizeof(image_import_descriptor)
 
   return rv
