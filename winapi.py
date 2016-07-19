@@ -1031,6 +1031,22 @@ ReadProcessMemory.restype = ctypes.wintypes.BOOL
 ReadProcessMemory.argtypes = [ ctypes.wintypes.HANDLE, ctypes.wintypes.LPCVOID,
   ctypes.wintypes.LPVOID, SIZE_T, ctypes.POINTER(SIZE_T) ]
 
+#WINBASEAPI
+#BOOL
+#WINAPI
+#WriteProcessMemory(
+#    __in      HANDLE hProcess,
+#    __in      LPVOID lpBaseAddress,
+#    __in_bcount(nSize) LPCVOID lpBuffer,
+#    __in      SIZE_T nSize,
+#    __out_opt SIZE_T * lpNumberOfBytesWritten
+#    );
+
+WriteProcessMemory = ctypes.windll.kernel32.WriteProcessMemory
+WriteProcessMemory.restype = ctypes.wintypes.BOOL
+WriteProcessMemory.argtypes = [ ctypes.wintypes.HANDLE, ctypes.wintypes.LPVOID,
+  ctypes.wintypes.LPCVOID, SIZE_T, ctypes.POINTER(SIZE_T) ]
+
 #typedef struct _MEMORY_BASIC_INFORMATION {
 #    PVOID BaseAddress;
 #    PVOID AllocationBase;
@@ -1982,7 +1998,7 @@ def import_table_to_str(process_handle, image_base_address, rva):
 
   return rv
 
-def lookup_function_from_import_table(
+def lookup_pointer_to_function_address_from_imports(
   process_handle, image_base_address, rva_to_import_table, function_name):
 
   # this utility could probably use much more refinement
@@ -2020,11 +2036,9 @@ def lookup_function_from_import_table(
         name = get_image_import_name(process_handle, image_base_address, struct_rva)
         if name == function_name:
           # found a match!
-          function_address = read_dword_from_remote_process(process_handle,
-            image_base_address
-            + image_import_descriptor.FirstThunk
-            + ctypes.sizeof(IMAGE_IMPORT_BY_NAME)*i)
-          return function_address
+          # calculate pointer to corresponding entry in IAT
+          return (image_base_address
+            + image_import_descriptor.FirstThunk + ctypes.sizeof(IMAGE_IMPORT_BY_NAME)*i)
 
         i += 1
         descriptor_pointer += 4
@@ -2032,3 +2046,26 @@ def lookup_function_from_import_table(
     import_table_pointer += ctypes.sizeof(image_import_descriptor)
 
   return None # not found
+
+def lookup_function_from_imports(
+  process_handle, image_base_address, rva_to_import_table, function_name):
+
+  address_in_iat = lookup_pointer_to_function_address_from_imports(
+    process_handle, image_base_address, rva_to_import_table, function_name)
+  if address_in_iat == None:
+    return None # not found
+  function_address = read_dword_from_remote_process(process_handle, address_in_iat)
+  return function_address
+
+def replace_function_address(
+  process_handle, image_base_address, rva_to_import_table, function_name, new_address):
+
+  address_in_iat = lookup_pointer_to_function_address_from_imports(
+    process_handle, image_base_address, rva_to_import_table, function_name)
+  if address_in_iat == None:
+    raise Exception('failed to find function')
+
+  if not WriteProcessMemory(process_handle, address_in_iat,
+    ctypes.pointer(ctypes.cast(new_address, ctypes.wintypes.LPVOID)),
+    4, nullptr):
+      raise Exception('WriteProcessMemory failed')

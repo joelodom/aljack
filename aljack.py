@@ -218,10 +218,21 @@ try:
       print()
 
       # see if we can find a function
-      address = winapi.lookup_function_from_import_table(
+      exit_address = winapi.lookup_function_from_imports(
         process_info.hProcess, image_base_address, import_table_rva, 'exit')
-      if address != None:
-        print('  Address of exit: 0x%08x' % address)
+      if exit_address != None:
+        print('  Address of exit: 0x%08x' % exit_address)
+        print()
+
+        # see if we can change a function's address
+        gets_address = winapi.lookup_function_from_imports(
+          process_info.hProcess, image_base_address, import_table_rva, 'gets')
+        print('  Address of gets before: 0x%08x' % gets_address)
+        winapi.replace_function_address(
+          process_info.hProcess, image_base_address, import_table_rva, 'gets', exit_address)
+        gets_address = winapi.lookup_function_from_imports(
+          process_info.hProcess, image_base_address, import_table_rva, 'gets')
+        print('  Address of gets after: 0x%08x' % gets_address)
         print()
 
     # END INTERLUDE
