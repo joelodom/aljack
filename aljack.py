@@ -140,6 +140,13 @@ print()
 
 image_base_address = None # populated below as image loads
 
+# you can't really hook this way because this will point to a different virtual address space
+#PRINTF_FUNC = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_char_p)
+#def printf_func(fmt):
+#  print('PRINTF called with: %s' % fmt)
+#  return len(fmt)
+#printf_hook = PRINTF_FUNC(printf_func)
+
 try:
 
   thread_handle = None # monitor this thread for experimentation
@@ -161,6 +168,8 @@ try:
   print('== Debug Events ==')
   print()
 
+  callback_set = False
+
   while True: # debugger loop
 
     # wait for a debug event
@@ -177,7 +186,19 @@ try:
     print('Debug Event: %s' % winapi.debug_event_to_str(debug_event))
     print()
 
-    if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
+    if debug_event.dwDebugEventCode == winapi.EXCEPTION_DEBUG_EVENT:
+
+      # EXCEPTION_DEBUG_EVENT
+      exception_debug_info = debug_event.u.Exception
+      print(utils.indent_string(winapi.exception_debug_info_to_str(
+        process_info.hProcess, exception_debug_info)))
+      print()
+
+      if exception_debug_info.ExceptionRecord.ExceptionCode == winapi.EXCEPTION_BREAKPOINT:
+        pass
+        #print('BREAKPOINT!')
+
+    elif debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
 
       # CREATE_PROCESS_DEBUG_EVENT
 
@@ -218,22 +239,46 @@ try:
       print()
 
       # see if we can find a function
+
       exit_address = winapi.lookup_function_from_imports(
         process_info.hProcess, image_base_address, import_table_rva, 'exit')
-      if exit_address != None:
-        print('  Address of exit: 0x%08x' % exit_address)
-        print()
 
-        # see if we can change a function's address
-        gets_address = winapi.lookup_function_from_imports(
-          process_info.hProcess, image_base_address, import_table_rva, 'gets')
-        print('  Address of gets before: 0x%08x' % gets_address)
-        winapi.replace_function_address(
-          process_info.hProcess, image_base_address, import_table_rva, 'gets', exit_address)
-        gets_address = winapi.lookup_function_from_imports(
-          process_info.hProcess, image_base_address, import_table_rva, 'gets')
-        print('  Address of gets after: 0x%08x' % gets_address)
-        print()
+      if exit_address != None and not callback_set: # only do this once
+        print('  == IAT Hook Experiment == ')
+
+
+
+#        print('  Address of exit: 0x%08x' % exit_address)
+#
+#        # see if we can change a function's address
+#
+#        gets_address = winapi.lookup_function_from_imports(
+#          process_info.hProcess, image_base_address, import_table_rva, 'gets')
+#        print('  Address of gets before: 0x%08x' % gets_address)
+#
+#        winapi.replace_function_address(
+#          process_info.hProcess, image_base_address, import_table_rva, 'gets', exit_address)
+#        gets_address = winapi.lookup_function_from_imports(
+#          process_info.hProcess, image_base_address, import_table_rva, 'gets')
+#        print('  Address of gets after: 0x%08x' % gets_address)
+#        print()
+
+
+
+
+#        # see if we can hook and send to Windows API
+#
+#        print('  Address of exit before: 0x%08x' % exit_address)
+#
+#        winapi.replace_function_address(
+#          process_info.hProcess, image_base_address, import_table_rva, 'exit',
+#          ctypes.windll.kernel32.DebugBreak) # uses different calling convention!!!
+#        exit_address = winapi.lookup_function_from_imports(
+#          process_info.hProcess, image_base_address, import_table_rva, 'exit')
+#        print('  Address of exit after: 0x%08x' % exit_address)
+#        print()
+
+        callback_set = True
 
     # END INTERLUDE
 
