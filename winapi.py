@@ -1875,11 +1875,13 @@ def pe_header_to_str(pe_header):
     utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
   ))
 
-def image_import_by_name_to_str(process_handle, image_base_address, rva):
+def get_image_import_name(process_handle, image_base_address, rva):
   # takes a pointer to an IMAGE_IMPORT_BY_NAME
   # because of the weird declaration in winnt.h, we have to read this manually
-  name = read_string_from_remote_process(process_handle, image_base_address + rva + 2)
-  return 'Name: %s' % name
+  return read_string_from_remote_process(process_handle, image_base_address + rva + 2)
+
+def image_import_by_name_to_str(process_handle, image_base_address, rva):
+  return 'Name: %s' % get_image_import_name(process_handle, image_base_address, rva)
 
 def image_import_by_name_array_to_str(process_handle, image_base_address, rva, by_name):
   pointer = image_base_address + rva
@@ -1979,3 +1981,54 @@ def import_table_to_str(process_handle, image_base_address, rva):
     pointer += ctypes.sizeof(image_import_descriptor)
 
   return rv
+
+def lookup_function_from_import_table(
+  process_handle, image_base_address, rva_to_import_table, function_name):
+
+  # this utility could probably use much more refinement
+
+  import_table_pointer = image_base_address + rva_to_import_table
+  rv = ''
+
+  # search the import table DLL-by-DLL
+
+  while True: # break when we reach the last entry
+
+    image_import_descriptor = IMAGE_IMPORT_DESCRIPTOR()
+    read_structure_from_remote_process(
+      process_handle, import_table_pointer, image_import_descriptor)
+
+    if image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk == 0:
+      break # no more structures
+
+    if is_iat_populated(process_handle, image_base_address, image_import_descriptor):
+
+      # we only get here if this DLL's IAT is populated
+
+      descriptor_pointer = (
+        image_base_address + image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk)
+
+      i = 0
+
+      # search the DLL's imports function-by-function
+
+      while True:
+        struct_rva = read_dword_from_remote_process(process_handle, descriptor_pointer)
+        if struct_rva == 0:
+          break # last entry in array
+
+        name = get_image_import_name(process_handle, image_base_address, struct_rva)
+        if name == function_name:
+          # found a match!
+          function_address = read_dword_from_remote_process(process_handle,
+            image_base_address
+            + image_import_descriptor.FirstThunk
+            + ctypes.sizeof(IMAGE_IMPORT_BY_NAME)*i)
+          return function_address
+
+        i += 1
+        descriptor_pointer += 4
+
+    import_table_pointer += ctypes.sizeof(image_import_descriptor)
+
+  return None # not found
