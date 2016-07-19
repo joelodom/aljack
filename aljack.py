@@ -188,6 +188,14 @@ try:
       image_base_address = debug_event.u.CreateProcessInfo.lpBaseOfImage
       thread_handle = debug_event.u.CreateProcessInfo.hThread
 
+    elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
+
+      # LOAD_DLL_DEBUG_EVENT
+      load_dll_debug_info = debug_event.u.LoadDll
+      print(utils.indent_string(winapi.load_dll_debug_info_to_str(
+        process_info.hProcess, load_dll_debug_info)))
+      print()
+
     # INTERLUDE: output information on the thread we are experimentally monitoring
 
     if thread_handle != None:
@@ -202,22 +210,15 @@ try:
       # experiment with the import table
       import_table_rva = pe_header.image_optional_header.DataDirectory[
         winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
-      print('  Import table (at RVA 0x%08x):' % import_table_rva)
+      print('  Current Process Import Table (at RVA 0x%08x):' % import_table_rva)
+      print()
       print(utils.indent_string(winapi.import_table_to_str(
         process_info.hProcess, image_base_address, import_table_rva), '    '))
       print()
 
     # END INTERLUDE
 
-    if debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
-
-      # LOAD_DLL_DEBUG_EVENT
-      load_dll_debug_info = debug_event.u.LoadDll
-      print(utils.indent_string(winapi.load_dll_debug_info_to_str(
-        process_info.hProcess, load_dll_debug_info)))
-      print()
-
-    elif debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
+    if debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
       # EXIT_PROCESS_DEBUG_EVENT
       break # exit the debugger loop
 

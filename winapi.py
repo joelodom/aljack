@@ -1602,9 +1602,9 @@ def memory_basic_info_to_str(memory_basic_info):
     'RegionSize: %s\n'
     'State: %s\n'
     'Protect: %s\n'
-    'Type: 0x%08x'
-    % (memory_basic_info.BaseAddress,
-    memory_basic_info.AllocationBase,
+    'Type: %s'
+    % (memory_basic_info.BaseAddress if memory_basic_info.BaseAddress != None else 0,
+    memory_basic_info.AllocationBase if memory_basic_info.AllocationBase != None else 0,
     memory_basic_info.AllocationProtect,
     memory_basic_info.RegionSize,
     memory_basic_info.State,
@@ -1613,18 +1613,15 @@ def memory_basic_info_to_str(memory_basic_info):
   )
 
 def show_memory_information(process_handle, pointer):
-  raise Exception('show_memory_information is TODO')
-  #  # note that this code to get the memory information may not be correct
-  #  memory_basic_info = MEMORY_BASIC_INFORMATION()
-  #  status = VirtualQueryEx(
-  #    process_handle, pointer, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
-  #  if status:
-  #    print('Memory Information for 0x%08x:' % pointer)
-  #    print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
-  #    print()
-  #  else:
-  #    print('VirtualQueryEx failed')
-  #  raise Exception('ReadProcessMemory failed to read 0x%08x' % pointer)
+  print('Memory Information for 0x%08x:' % pointer)
+  memory_basic_info = MEMORY_BASIC_INFORMATION()
+  status = VirtualQueryEx(
+    process_handle, pointer, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
+  if status == ctypes.sizeof(memory_basic_info):
+    print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
+    print()
+  else:
+    print('VirtualQueryEx failed')
 
 
 def read_byte_from_remote_process(process_handle, pointer):
@@ -1637,6 +1634,7 @@ def read_byte_from_remote_process(process_handle, pointer):
   #print('Trying to read one byte from 0x%08x.' % pointer)
   buf = ctypes.create_string_buffer(1) # 1-byte buffer, initialized to null
   if not ReadProcessMemory(process_handle, pointer, buf, 1, nullptr):
+    print('*** ReadProcessMemory failed ***')
     show_memory_information(process_handle, pointer)
   #print('At 0x%08x we have byte 0x%02x.' % (pointer, buf[0][0]))
   return buf[0][0]
@@ -1650,6 +1648,7 @@ def read_word_from_remote_process(process_handle, pointer):
 
   buf = ctypes.create_string_buffer(2) # 2-byte buffer, initialized to nulls
   if not ReadProcessMemory(process_handle, pointer, buf, 2, nullptr):
+    print('*** ReadProcessMemory failed ***')
     show_memory_information(process_handle, pointer)
   rv = (buf.raw[1] << 8) + buf.raw[0]
   #print('At 0x%08x we have word 0x%04x.' % (pointer, rv))
@@ -1664,6 +1663,7 @@ def read_dword_from_remote_process(process_handle, pointer):
 
   buf = ctypes.create_string_buffer(4) # 4-byte buffer, initialized to nulls
   if not ReadProcessMemory(process_handle, pointer, buf, 4, nullptr):
+    print('*** ReadProcessMemory failed ***')
     show_memory_information(process_handle, pointer)
   rv = (buf.raw[3] << 24) + (buf.raw[2] << 16) + (buf.raw[1] << 8) + buf.raw[0]
   #print('At 0x%08x we have dword 0x%08x.' % (pointer, rv))
@@ -1696,6 +1696,7 @@ def read_structure_from_remote_process(process_handle, pointer, structure):
   #print('Trying to read %s bytes from 0x%08x.' % (ctypes.sizeof(structure), pointer))
   buf = ctypes.create_string_buffer(ctypes.sizeof(structure)) # initialized to nulls
   if not ReadProcessMemory(process_handle, pointer, buf, ctypes.sizeof(structure), nullptr):
+    print('*** ReadProcessMemory failed ***')
     show_memory_information(process_handle, pointer)
   ctypes.memmove(ctypes.addressof(structure), buf, ctypes.sizeof(structure))
 
@@ -1880,7 +1881,7 @@ def image_import_by_name_to_str(process_handle, image_base_address, rva):
   name = read_string_from_remote_process(process_handle, image_base_address + rva + 2)
   return 'Name: %s' % name
 
-def image_import_by_name_array_to_str(process_handle, image_base_address, rva):
+def image_import_by_name_array_to_str(process_handle, image_base_address, rva, by_name):
   pointer = image_base_address + rva
   rv = ''
 
@@ -1888,10 +1889,24 @@ def image_import_by_name_array_to_str(process_handle, image_base_address, rva):
     struct_rva = read_dword_from_remote_process(process_handle, pointer)
     if struct_rva == 0:
       break
-    rv += '%s\n' % image_import_by_name_to_str(process_handle, image_base_address, struct_rva)
+    if by_name:
+      rv += '%s\n' % image_import_by_name_to_str(process_handle, image_base_address, struct_rva)
+    else: # by address
+      rv += '0x%08x\n' % struct_rva
     pointer += 4
 
   return rv
+
+def is_iat_populated(process_handle, image_base_address, image_import_descriptor):
+  '''
+  Determines whether or not the IAT pointed to by image_import_descriptor is populated or not.
+  '''
+
+  original_first_entry = read_dword_from_remote_process(
+    process_handle, image_base_address + image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk)
+  current_first_entry = read_dword_from_remote_process(
+    process_handle, image_base_address + image_import_descriptor.FirstThunk)
+  return original_first_entry != current_first_entry
 
 def import_table_to_str(process_handle, image_base_address, rva):
   pointer = image_base_address + rva
@@ -1910,16 +1925,56 @@ def import_table_to_str(process_handle, image_base_address, rva):
       name = read_string_from_remote_process(
         process_handle, image_base_address + image_import_descriptor.Name)
 
-    rv +=(
-      'Name: %s\n'
-      '  Original First Thunk RVA: 0x%08x\n'
-      '%s' # hint name array
-      % (
-      name,
-      image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
-      utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
-        image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk), '    ')
-    ))
+    # The import table (at the original first thunk RVA) tells what functions are
+    # imported from the DLL in question.  The import address table (at the first thunk RVA)
+    # originally contains the function names but the loader overwrites these names with the
+    # function addresses.
+
+    if is_iat_populated(process_handle, image_base_address, image_import_descriptor):
+      # show addresses in the IAT, not names
+      rv +=(
+        'Name: %s\n'
+        'TimeDateStamp: %s\n'
+        'ForwarderChain: %s\n'
+        'This table appears to be populated.\n'
+        '\n'
+        'Original First Thunk RVA: 0x%08x\n'
+        '%s\n' # hint name array
+        'First Thunk RVA: 0x%08x\n'
+        '%s' # import address table
+        % (
+        name,
+        image_import_descriptor.TimeDateStamp,
+        image_import_descriptor.ForwarderChain,
+        image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+          image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk, True)),
+        image_import_descriptor.FirstThunk,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+          image_import_descriptor.FirstThunk, False))
+      ))
+    else:
+      rv +=(
+        'Name: %s\n'
+        'TimeDateStamp: %s\n'
+        'ForwarderChain: %s\n'
+        'This table does not appear to be populated.\n'
+        '\n'
+        'Original First Thunk RVA: 0x%08x\n'
+        '%s\n' # hint name array
+        'First Thunk RVA: 0x%08x\n'
+        '%s' # import address table
+        % (
+        name,
+        image_import_descriptor.TimeDateStamp,
+        image_import_descriptor.ForwarderChain,
+        image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+          image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk, True)),
+        image_import_descriptor.FirstThunk,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+          image_import_descriptor.FirstThunk, True))
+      ))
 
     pointer += ctypes.sizeof(image_import_descriptor)
 
