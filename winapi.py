@@ -1803,6 +1803,7 @@ def read_byte_from_remote_process(process_handle, pointer):
   if not ReadProcessMemory(process_handle, pointer, buf, 1, nullptr):
     print('*** ReadProcessMemory failed ***')
     show_memory_information(process_handle, pointer)
+    return None
   #print('At 0x%08x we have byte 0x%02x.' % (pointer, buf[0][0]))
   return buf[0][0]
 
@@ -1901,12 +1902,16 @@ def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
     raise Exception('need to handle non-Unicode')
 
   return (
-    'hFile: 0x%x\n'
+    'hFile: 0x%08x\n'
     'lpBaseOfDll: 0x%08x\n'
+    'dwDebugInfoFileOffset: 0x%08x\n'
+    'nDebugInfoSize: %s\n'
     'lpImageName: %s\n'
     'fUnicode: %s'
     % (load_dll_debug_info.hFile,
     load_dll_debug_info.lpBaseOfDll,
+    load_dll_debug_info.dwDebugInfoFileOffset,
+    load_dll_debug_info.nDebugInfoSize,
     lp_image_name_to_str(process_handle, load_dll_debug_info),
     load_dll_debug_info.fUnicode)
   )
@@ -2278,3 +2283,21 @@ def exception_debug_info_to_str(process_handle, exception_debug_info):
     %
     exception_record_to_str(process_handle, exception_debug_info.ExceptionRecord)
   )
+
+def output_memory_bytes_until_failure(process_handle, pointer):
+  # slow and dumb approach
+  show_memory_information(process_handle, pointer)
+  line = ''
+  while True:
+    byte = read_byte_from_remote_process(process_handle, pointer)
+    if byte == None:
+      break
+    if byte > 31 and byte < 126:
+      line += chr(byte)
+    else:
+      line += '.'
+    if len(line) % 80 == 0:
+      print(line)
+      line = ''
+    pointer += 1
+  print()

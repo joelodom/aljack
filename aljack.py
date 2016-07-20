@@ -217,14 +217,20 @@ try:
         process_info.hProcess, load_dll_debug_info)))
       print()
 
+      # dump the memory where the DLL (was / will be?) loaded
+      winapi.output_memory_bytes_until_failure(
+        process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
+      exit(0)
+
     # INTERLUDE: output information on the thread we are experimentally monitoring
 
     if thread_handle != None:
       context = winapi.WOW64_CONTEXT()
       context.ContextFlags = winapi.WOW64_CONTEXT_ALL
+      print('  Thread State:')
       if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
-      print(utils.indent_string(winapi.wow64_context_to_str(context)))
+      print(utils.indent_string(winapi.wow64_context_to_str(context), '    '))
       print()
 
     if image_base_address != None:
@@ -232,7 +238,7 @@ try:
       # show the import table
       import_table_rva = pe_header.image_optional_header.DataDirectory[
         winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
-      print('  Current Process Import Table (at RVA 0x%08x):' % import_table_rva)
+      print('  Process Import Table (at RVA 0x%08x):' % import_table_rva)
       print()
       print(utils.indent_string(winapi.import_table_to_str(
         process_info.hProcess, image_base_address, import_table_rva), '    '))
@@ -244,7 +250,7 @@ try:
         process_info.hProcess, image_base_address, import_table_rva, 'exit')
 
       if exit_address != None and not callback_set: # only do this once
-        print('  == IAT Hook Experiment == ')
+#        print('  == IAT Hook Experiment == ')
 
 
 
