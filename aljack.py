@@ -6,6 +6,7 @@ import sys
 import winapi
 import ctypes
 import utils
+import winutils
 
 # start with a Python version check
 
@@ -58,7 +59,7 @@ def read_pe_header(f):
   The file position should be queued to the header to read.
   '''
 
-  pe_header = winapi.PEHeader()
+  pe_header = winutils.PEHeader()
 
   # check the signature
 
@@ -121,7 +122,7 @@ with open(PE_FILE, 'rb') as f:
   f.seek(dos_header.e_lfanew)
   pe_header = read_pe_header(f)
 
-  print(utils.indent_string(winapi.pe_header_to_str(pe_header)))
+  print(utils.indent_string(winutils.pe_header_to_str(pe_header)))
 
   # read the section table
   print('  Sections: ')
@@ -183,14 +184,14 @@ try:
 
     # handle the debug event
 
-    print('Debug Event: %s' % winapi.debug_event_to_str(debug_event))
+    print('Debug Event: %s' % winutils.debug_event_to_str(debug_event))
     print()
 
     if debug_event.dwDebugEventCode == winapi.EXCEPTION_DEBUG_EVENT:
 
       # EXCEPTION_DEBUG_EVENT
       exception_debug_info = debug_event.u.Exception
-      print(utils.indent_string(winapi.exception_debug_info_to_str(
+      print(utils.indent_string(winutils.exception_debug_info_to_str(
         process_info.hProcess, exception_debug_info)))
       print()
 
@@ -203,7 +204,8 @@ try:
       # CREATE_PROCESS_DEBUG_EVENT
 
       create_process_debug_info = debug_event.u.CreateProcessInfo
-      print(utils.indent_string(winapi.create_process_debug_info_to_str(create_process_debug_info)))
+      print(utils.indent_string(
+        winutils.create_process_debug_info_to_str(create_process_debug_info)))
       print()
 
       image_base_address = debug_event.u.CreateProcessInfo.lpBaseOfImage
@@ -213,12 +215,12 @@ try:
 
       # LOAD_DLL_DEBUG_EVENT
       load_dll_debug_info = debug_event.u.LoadDll
-      print(utils.indent_string(winapi.load_dll_debug_info_to_str(
+      print(utils.indent_string(winutils.load_dll_debug_info_to_str(
         process_info.hProcess, load_dll_debug_info)))
       print()
 
       # dump the memory where the DLL (was / will be?) loaded
-      winapi.output_memory_bytes_until_failure(
+      winutils.output_memory_bytes_until_failure(
         process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
       exit(0)
 
@@ -230,7 +232,7 @@ try:
       print('  Thread State:')
       if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
-      print(utils.indent_string(winapi.wow64_context_to_str(context), '    '))
+      print(utils.indent_string(winutils.wow64_context_to_str(context), '    '))
       print()
 
     if image_base_address != None:
@@ -240,13 +242,13 @@ try:
         winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
       print('  Process Import Table (at RVA 0x%08x):' % import_table_rva)
       print()
-      print(utils.indent_string(winapi.import_table_to_str(
+      print(utils.indent_string(winutils.import_table_to_str(
         process_info.hProcess, image_base_address, import_table_rva), '    '))
       print()
 
       # see if we can find a function
 
-      exit_address = winapi.lookup_function_from_imports(
+      exit_address = winutils.lookup_function_from_imports(
         process_info.hProcess, image_base_address, import_table_rva, 'exit')
 
       if exit_address != None and not callback_set: # only do this once
@@ -258,13 +260,13 @@ try:
 #
 #        # see if we can change a function's address
 #
-#        gets_address = winapi.lookup_function_from_imports(
+#        gets_address = winutils.lookup_function_from_imports(
 #          process_info.hProcess, image_base_address, import_table_rva, 'gets')
 #        print('  Address of gets before: 0x%08x' % gets_address)
 #
-#        winapi.replace_function_address(
+#        winutils.replace_function_address(
 #          process_info.hProcess, image_base_address, import_table_rva, 'gets', exit_address)
-#        gets_address = winapi.lookup_function_from_imports(
+#        gets_address = winutils.lookup_function_from_imports(
 #          process_info.hProcess, image_base_address, import_table_rva, 'gets')
 #        print('  Address of gets after: 0x%08x' % gets_address)
 #        print()
@@ -276,10 +278,10 @@ try:
 #
 #        print('  Address of exit before: 0x%08x' % exit_address)
 #
-#        winapi.replace_function_address(
+#        winutils.replace_function_address(
 #          process_info.hProcess, image_base_address, import_table_rva, 'exit',
 #          ctypes.windll.kernel32.DebugBreak) # uses different calling convention!!!
-#        exit_address = winapi.lookup_function_from_imports(
+#        exit_address = winutils.lookup_function_from_imports(
 #          process_info.hProcess, image_base_address, import_table_rva, 'exit')
 #        print('  Address of exit after: 0x%08x' % exit_address)
 #        print()
@@ -300,9 +302,9 @@ try:
 
 except Exception as ex:
   print('**********  ERROR  **********')
-  print('Last Windows Error: %s' % winapi.get_last_error_string())
+  print('Last Windows Error: %s' % winutils.get_last_error_string())
   print()
   raise ex
-  #  #winapi.MessageBox(winapi.nullptr, error, str(ex), winapi.MB_ICONEXCLAMATION)
+  #winapi.MessageBox(winapi.nullptr, error, str(ex), winapi.MB_ICONEXCLAMATION)
 
 print('Done.')
