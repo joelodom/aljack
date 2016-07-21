@@ -8,8 +8,6 @@ import sys
 import ctypes
 import ctypes.wintypes
 
-import utils
-
 # start with a Python version check
 
 if sys.version_info.major != 3 or sys.version_info.minor != 5:

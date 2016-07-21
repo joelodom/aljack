@@ -6,7 +6,7 @@ import sys
 import ctypes
 
 import winapi
-import utils
+import ui
 import winutils
 
 # start with a Python version check
@@ -14,6 +14,20 @@ import winutils
 if sys.version_info.major != 3 or sys.version_info.minor != 5:
   raise Exception(
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
+
+
+
+# UI experiments
+
+main_ui = ui.UI()
+
+main_ui.output1.set_text('this is output 1')
+main_ui.output2.set_text('this is output 2 ' * 300)
+main_ui.output3.set_text('this is output 3\n' * 300)
+
+main_ui.refresh()
+
+exit(0)
 
 
 
@@ -90,7 +104,7 @@ try:
 
       # EXCEPTION_DEBUG_EVENT
       exception_debug_info = debug_event.u.Exception
-      print(utils.indent_string(winutils.exception_debug_info_to_str(
+      print(ui.indent_string(winutils.exception_debug_info_to_str(
         process_info.hProcess, exception_debug_info)))
       print()
 
@@ -103,7 +117,7 @@ try:
       # CREATE_PROCESS_DEBUG_EVENT
 
       create_process_debug_info = debug_event.u.CreateProcessInfo
-      print(utils.indent_string(
+      print(ui.indent_string(
         winutils.create_process_debug_info_to_str(create_process_debug_info)))
       print()
 
@@ -119,7 +133,7 @@ try:
 
       # LOAD_DLL_DEBUG_EVENT
       load_dll_debug_info = debug_event.u.LoadDll
-      print(utils.indent_string(winutils.load_dll_debug_info_to_str(
+      print(ui.indent_string(winutils.load_dll_debug_info_to_str(
         process_info.hProcess, load_dll_debug_info)))
       print()
 
@@ -141,7 +155,7 @@ try:
       print('  Thread State:')
       if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
           raise Exception('GetThreadContext failed')
-      print(utils.indent_string(winutils.wow64_context_to_str(context), '    '))
+      print(ui.indent_string(winutils.wow64_context_to_str(context), '    '))
       print()
 
     if image_base_address != None:
@@ -151,7 +165,7 @@ try:
         winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
       print('  Process Import Table (at RVA 0x%08x):' % import_table_rva)
       print()
-      print(utils.indent_string(winutils.import_table_to_str(
+      print(ui.indent_string(winutils.import_table_to_str(
         process_info.hProcess, image_base_address, import_table_rva), '    '))
       print()
 
