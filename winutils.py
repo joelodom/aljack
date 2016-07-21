@@ -430,7 +430,7 @@ def pe_header_to_str(pe_header):
     'Image File Header:\n'
     '%s\n'
     'Image Optional Headers:\n'
-    '%s'
+    '%s\n'
 
     % (ui.indent_string(image_file_header_to_str(pe_header.image_file_header)),
     ui.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
@@ -818,15 +818,15 @@ def analyze_pe_file(f): # code for experimentation
   f.seek(dos_header.e_lfanew)
   pe_header = read_pe_header(f)
 
-  print(ui.indent_string(pe_header_to_str(pe_header)))
+  rv = pe_header_to_str(pe_header)
 
   # read the section table
-  print('  Sections: ')
+  rv += 'Sections: \n'
   for i in range(pe_header.image_file_header.NumberOfSections):
     section_header = read_section_header(f)
     name = ''
     for b in section_header.Name:
       name += chr(b)
-    print('    %s' % name)
+    rv += '  %s\n' % name
 
-  return pe_header
+  return rv

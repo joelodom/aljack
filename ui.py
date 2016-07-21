@@ -3,6 +3,8 @@
 #
 
 import os
+import msvcrt
+import sys
 
 DEFAULT_SPACER = '  ' # two spaces
 
@@ -68,12 +70,70 @@ class UI():
   output2 = TextOutputBox(TOTAL_WIDTH//3, OUTPUT_HEIGHTS)
   output3 = TextOutputBox(TOTAL_WIDTH//3, OUTPUT_HEIGHTS)
 
-  input_box = TextOutputBox(TOTAL_WIDTH, INPUT_HEIGHT) # TODO: make some kind of input box
+  output_buffers = [] # outputs to the right of output3
+
+  def __init__(self, command_handler):
+    self.command_handler = command_handler
+
+  def output(self, text):
+    '''
+    Displays output, pushing old output to the right.
+    '''
+
+    self.output_buffers.append(self.output3.lines)
+    self.output3.lines = self.output2.lines
+    self.output2.lines = self.output1.lines
+    self.output1.set_text(text)
 
   def refresh(self):
+
+    # display the output boxis
     os.system('cls')
     for i in range(OUTPUT_HEIGHTS):
       print('%s%s%s' % (
         self.output1.get_line(i), self.output2.get_line(i), self.output3.get_line(i)))
-    for i in range(INPUT_HEIGHT):
-      print(self.input_box.get_line(i))
+
+    # handle input box
+
+    for i in range(INPUT_HEIGHT - 1):
+      print()
+
+    command = ''
+
+    while True: # input loop
+
+      # clear the current line and rewrite the command
+
+      sys.stdout.write('\r')
+      sys.stdout.write(' ' * TOTAL_WIDTH)
+      sys.stdout.write('\r> %s' % command)
+
+      k = msvcrt.getch()
+
+      if k == '\000' or k == b'\xe0': # an arrow key or something
+        msvcrt.getch() # get the rest of the key information
+        continue # drop it for now
+      if k[0] == 27: # ESC
+        # clear last output
+        self.output1.lines = self.output2.lines
+        self.output2.lines = self.output3.lines
+        if len(self.output_buffers) > 0:
+          self.output3.lines = self.output_buffers.pop()
+        else:
+          self.output3.set_text('')
+        return
+      elif k == b'\r':
+        if len(command) == 0:
+          return # nothing to report
+        print()
+        break # break and send command to handler
+      elif k[0] == 8 and len(command) > 0: # backspace
+        command = command[:-1]
+      elif k[0] >= 32 and k[0] <= 126: # printable character range
+        c = chr(k[0])
+        sys.stdout.write(c)
+        sys.stdout.flush()
+
+        command += c
+
+    self.command_handler.handle(command)

@@ -9,6 +9,8 @@ import winapi
 import ui
 import winutils
 
+PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
+
 # start with a Python version check
 
 if sys.version_info.major != 3 or sys.version_info.minor != 5:
@@ -16,26 +18,34 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
 
+#
+# run UI loop
+#
 
-# UI experiments
+class CommandHandler():
+  def handle(self, command):
+    if command == 'exit':
+      exit(0)
+    elif command == 'load-pe':
+      with open(PE_FILE, 'rb') as f:
+        analysis = winutils.analyze_pe_file(f)
+        main_ui.output(analysis)
+    else:
+      main_ui.output('help is on the way')
 
-main_ui = ui.UI()
+command_handler = CommandHandler()
+main_ui = ui.UI(command_handler)
 
-main_ui.output1.set_text('this is output 1')
-main_ui.output2.set_text('this is output 2 ' * 300)
-main_ui.output3.set_text('this is output 3\n' * 300)
+while True:
+  main_ui.refresh() # command handler will exit
 
-main_ui.refresh()
 
-exit(0)
 
 
 
 #
 # Analyze the PE file on disk
 #
-
-PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
 #TODO: should be able to get this from memory now that we analyze in memory
 pe_header = None # used later in debugging to find the address of modules
@@ -47,6 +57,8 @@ with open(PE_FILE, 'rb') as f:
   pe_header = winutils.analyze_pe_file(f)
 
 print()
+
+
 
 #
 # Code to debug a runnnig process
