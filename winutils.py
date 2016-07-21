@@ -724,7 +724,7 @@ class MemoryMetaFile():
       self.process_handle, self.base_address + self.position, buf, num_bytes, nullptr)
     if not rv or len(buf) != num_bytes:
         print('*** ReadProcessMemory failed ***')
-        show_memory_information(process_handle, pointer)
+        show_memory_information(self.process_handle, pointer)
     self.position += num_bytes
     return bytes(buf)
 
@@ -773,7 +773,13 @@ def read_pe_header(f):
 
   # read the optional header
 
-  pe_header.image_optional_header = IMAGE_OPTIONAL_HEADER32()
+  if pe_header.image_file_header.SizeOfOptionalHeader == ctypes.sizeof(IMAGE_OPTIONAL_HEADER32):
+    pe_header.image_optional_header = IMAGE_OPTIONAL_HEADER32()
+  elif pe_header.image_file_header.SizeOfOptionalHeader == ctypes.sizeof(IMAGE_OPTIONAL_HEADER64):
+    pe_header.image_optional_header = IMAGE_OPTIONAL_HEADER64()
+  else:
+    raise Exception('unexpected SizeOfOptionalHeader')
+
   position_before_optional_header = f.tell()
   read_into_structure(f, pe_header.image_optional_header)
 
@@ -783,8 +789,8 @@ def read_pe_header(f):
 
   optional_header_bytes_read = position_after_optional_header - position_before_optional_header
   if optional_header_bytes_read != pe_header.image_file_header.SizeOfOptionalHeader:
-    raise Exception('optional header size check failed (read %s bytes)'
-      % optional_header_bytes_read)
+    raise Exception('optional header size check failed (read %s bytes and expected %s bytes)'
+      % (optional_header_bytes_read, pe_header.image_file_header.SizeOfOptionalHeader))
 
   return pe_header
 

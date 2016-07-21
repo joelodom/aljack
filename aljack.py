@@ -110,10 +110,10 @@ try:
       image_base_address = debug_event.u.CreateProcessInfo.lpBaseOfImage
       thread_handle = debug_event.u.CreateProcessInfo.hThread
 
-      # reanalyze the PE file now that it's loaded
-      f = winutils.MemoryMetaFile(process_info.hProcess, image_base_address)
-      winutils.analyze_pe_file(f)
-      exit(0)
+#      # reanalyze the PE file now that it's loaded
+#      f = winutils.MemoryMetaFile(process_info.hProcess, image_base_address)
+#      winutils.analyze_pe_file(f)
+#      exit(0)
 
     elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
 
@@ -127,6 +127,11 @@ try:
 #      winutils.output_memory_bytes_until_failure(
 #        process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
 #      exit(0)
+
+      # analyze the DLL in memory
+      f = winutils.MemoryMetaFile(process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
+      winutils.analyze_pe_file(f)
+      exit(0)
 
     # INTERLUDE: output information on the thread we are experimentally monitoring
 
