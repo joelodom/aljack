@@ -3,8 +3,9 @@
 #
 
 import sys
-import winapi
 import ctypes
+
+import winapi
 import utils
 import winutils
 
@@ -15,123 +16,21 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
 
-#
-# Utility functions to read structured data
-#
-
-def read_exact_number_of_bytes(f, n):
-  '''
-  Reads exactly n bytes from f.
-  '''
-
-  bytes = f.read(n)
-  if len(bytes) != n:
-    raise Exception('failed to read bytes')
-
-  return bytes
-
-def read_into_structure(f, structure):
-  bytes = read_exact_number_of_bytes(f, ctypes.sizeof(structure))
-  ctypes.memmove(ctypes.addressof(structure), bytes, ctypes.sizeof(structure))
-
 
 #
-# Code to handle PE reading and parsing
+# Analyze the PE file on disk
 #
-
-def read_dos_header(f):
-  '''
-  Reads the DOS header.
-
-  The file position should be queued to the header to read.
-  '''
-
-  dos_header = winapi.IMAGE_DOS_HEADER()
-  read_into_structure(f, dos_header)
-
-  return dos_header
-
-
-def read_pe_header(f):
-  '''
-  Reads the PE header.
-
-  The file position should be queued to the header to read.
-  '''
-
-  pe_header = winutils.PEHeader()
-
-  # check the signature
-
-  pe_header.signature = read_exact_number_of_bytes(f, 4)
-  if pe_header.signature != bytes('PE\0\0', 'ascii'):
-    raise Exception('bad PE signature')
-
-  # read the image file header
-
-  pe_header.image_file_header = winapi.IMAGE_FILE_HEADER()
-  read_into_structure(f, pe_header.image_file_header)
-
-  # read the optional header
-
-  pe_header.image_optional_header = winapi.IMAGE_OPTIONAL_HEADER32()
-  position_before_optional_header = f.tell()
-  read_into_structure(f, pe_header.image_optional_header)
-
-  # sanity check position against size_of_optional_header
-
-  position_after_optional_header = f.tell()
-
-  optional_header_bytes_read = position_after_optional_header - position_before_optional_header
-  if optional_header_bytes_read != pe_header.image_file_header.SizeOfOptionalHeader:
-    raise Exception('optional header size check failed (read %s bytes)'
-      % optional_header_bytes_read)
-
-  return pe_header
-
-
-def read_section_header(f):
-  '''
-  Reads a section header.
-
-  The file position should be queued to the table to read.
-  '''
-
-  section_header = winapi.IMAGE_SECTION_HEADER()
-  read_into_structure(f, section_header)
-
-
-  return section_header
-
-
-
 
 PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe'
 
+#TODO: should be able to get this from memory now that we analyze in memory
 pe_header = None # used later in debugging to find the address of modules
 
 with open(PE_FILE, 'rb') as f:
-
   print('Information for PE file %s:' % PE_FILE)
   print()
 
-  # read the DOS header
-  dos_header = read_dos_header(f)
-
-  # seek to and read the PE header
-  f.seek(dos_header.e_lfanew)
-  pe_header = read_pe_header(f)
-
-  print(utils.indent_string(winutils.pe_header_to_str(pe_header)))
-
-  # read the section table
-  print('  Sections: ')
-  for i in range(pe_header.image_file_header.NumberOfSections):
-    section_header = read_section_header(f)
-    name = ''
-    for b in section_header.Name:
-      name += chr(b)
-    print('    %s' % name)
+  pe_header = winutils.analyze_pe_file(f)
 
 print()
 
@@ -211,6 +110,11 @@ try:
       image_base_address = debug_event.u.CreateProcessInfo.lpBaseOfImage
       thread_handle = debug_event.u.CreateProcessInfo.hThread
 
+      # reanalyze the PE file now that it's loaded
+      f = winutils.MemoryMetaFile(process_info.hProcess, image_base_address)
+      winutils.analyze_pe_file(f)
+      exit(0)
+
     elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
 
       # LOAD_DLL_DEBUG_EVENT
@@ -219,10 +123,10 @@ try:
         process_info.hProcess, load_dll_debug_info)))
       print()
 
-      # dump the memory where the DLL (was / will be?) loaded
-      winutils.output_memory_bytes_until_failure(
-        process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
-      exit(0)
+#      # dump the memory where the DLL (was / will be?) loaded
+#      winutils.output_memory_bytes_until_failure(
+#        process_info.hProcess, load_dll_debug_info.lpBaseOfDll)
+#      exit(0)
 
     # INTERLUDE: output information on the thread we are experimentally monitoring
 

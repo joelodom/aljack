@@ -1,3 +1,5 @@
+import binascii
+
 #
 # Windows API utilities by Joel Odom.
 #
@@ -686,3 +688,137 @@ def output_memory_bytes_until_failure(process_handle, pointer):
       line = ''
     pointer += 1
   print()
+
+#
+# Utility functions to read structured data
+#
+
+def read_exact_number_of_bytes(f, n):
+  '''
+  Reads exactly n bytes from f.
+  '''
+
+  bytes = f.read(n)
+  if len(bytes) != n:
+    raise Exception('failed to read bytes')
+
+  return bytes
+
+def read_into_structure(f, structure):
+  bytes = read_exact_number_of_bytes(f, ctypes.sizeof(structure))
+  ctypes.memmove(ctypes.addressof(structure), bytes, ctypes.sizeof(structure))
+
+class MemoryMetaFile():
+  '''
+  A metafile class that access Windows memory as it if were a Python file.
+  '''
+
+  def __init__(self, process_handle, base_address):
+    self.process_handle = process_handle
+    self.base_address = base_address
+    self.position = 0 # position from base address in bytes
+
+  def read(self, num_bytes):
+    buf = ctypes.create_string_buffer(num_bytes) # initialized to nulls
+    rv = ReadProcessMemory(
+      self.process_handle, self.base_address + self.position, buf, num_bytes, nullptr)
+    if not rv or len(buf) != num_bytes:
+        print('*** ReadProcessMemory failed ***')
+        show_memory_information(process_handle, pointer)
+    self.position += num_bytes
+    return bytes(buf)
+
+  def tell(self):
+    return self.position
+
+  def seek(self, position):
+    self.position = position
+
+#
+# Code to handle PE reading and parsing
+#
+
+def read_dos_header(f):
+  '''
+  Reads the DOS header.
+
+  The file position should be queued to the header to read.
+  '''
+
+  dos_header = IMAGE_DOS_HEADER()
+  read_into_structure(f, dos_header)
+
+  return dos_header
+
+
+def read_pe_header(f):
+  '''
+  Reads the PE header.
+
+  The file position should be queued to the header to read.
+  '''
+
+  pe_header = PEHeader()
+
+  # check the signature
+
+  pe_header.signature = read_exact_number_of_bytes(f, 4)
+  if pe_header.signature != bytes('PE\0\0', 'ascii'):
+    raise Exception('bad PE signature (%s)' % binascii.hexlify(pe_header.signature))
+
+  # read the image file header
+
+  pe_header.image_file_header = IMAGE_FILE_HEADER()
+  read_into_structure(f, pe_header.image_file_header)
+
+  # read the optional header
+
+  pe_header.image_optional_header = IMAGE_OPTIONAL_HEADER32()
+  position_before_optional_header = f.tell()
+  read_into_structure(f, pe_header.image_optional_header)
+
+  # sanity check position against size_of_optional_header
+
+  position_after_optional_header = f.tell()
+
+  optional_header_bytes_read = position_after_optional_header - position_before_optional_header
+  if optional_header_bytes_read != pe_header.image_file_header.SizeOfOptionalHeader:
+    raise Exception('optional header size check failed (read %s bytes)'
+      % optional_header_bytes_read)
+
+  return pe_header
+
+
+def read_section_header(f):
+  '''
+  Reads a section header.
+
+  The file position should be queued to the table to read.
+  '''
+
+  section_header = IMAGE_SECTION_HEADER()
+  read_into_structure(f, section_header)
+
+
+  return section_header
+
+def analyze_pe_file(f): # code for experimentation
+  # read the DOS header
+  dos_header = read_dos_header(f)
+
+  # seek to and read the PE header
+  f.seek(dos_header.e_lfanew)
+  pe_header = read_pe_header(f)
+
+  print(utils.indent_string(pe_header_to_str(pe_header)))
+
+  # read the section table
+  print('  Sections: ')
+  for i in range(pe_header.image_file_header.NumberOfSections):
+    section_header = read_section_header(f)
+    name = ''
+    for b in section_header.Name:
+      name += chr(b)
+    print('    %s' % name)
+
+  return pe_header

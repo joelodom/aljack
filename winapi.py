@@ -7,6 +7,7 @@
 import sys
 import ctypes
 import ctypes.wintypes
+
 import utils
 
 # start with a Python version check
