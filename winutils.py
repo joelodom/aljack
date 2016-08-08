@@ -43,7 +43,7 @@ def image_file_characteristics_to_str(characteristics):
   if characteristics & IMAGE_FILE_BYTES_REVERSED_HI:
     chars.append('IMAGE_FILE_BYTES_REVERSED_HI')
 
-  return ' '.join(chars)
+  return '\n'.join(chars)
 
 def image_file_machine_to_str(image_file_machine_machine):
 
@@ -392,7 +392,7 @@ def data_directory_to_str(data_directory):
     else:
       rv += 'Unassigned or unknown directory entry (%s)' % i
 
-    rv += (':  VirtualAddress: 0x%08x  Size: %s\n' % (
+    rv += (':\n  VirtualAddress: 0x%08x  Size: %s\n' % (
       data_directory[i].VirtualAddress, data_directory[i].Size))
 
   return rv
@@ -405,7 +405,8 @@ def image_file_header_to_str(image_file_header):
     'Symbol table offset: %s\n'
     'Number of symbols: %s\n'
     'Size of optional header: %s\n'
-    'Characteristics: %s (0x%04x)\n'
+    'Characteristics (0x%04x):\n'
+    '%s'
 
     % (image_file_machine_to_str(image_file_header.Machine), image_file_header.Machine,
     image_file_header.NumberOfSections,
@@ -413,8 +414,8 @@ def image_file_header_to_str(image_file_header):
     image_file_header.PointerToSymbolTable,
     image_file_header.NumberOfSymbols,
     image_file_header.SizeOfOptionalHeader,
-    image_file_characteristics_to_str(image_file_header.Characteristics),
-    image_file_header.Characteristics
+    image_file_header.Characteristics,
+    ui.indent_string(image_file_characteristics_to_str(image_file_header.Characteristics))
     ))
 
 def image_optional_header_to_str(image_optional_header):
@@ -429,6 +430,7 @@ def pe_header_to_str(pe_header):
   return (
     'Image File Header:\n'
     '%s\n'
+    '\n'
     'Image Optional Headers:\n'
     '%s\n'
 
