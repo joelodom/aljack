@@ -17,6 +17,29 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
   raise Exception(
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
+#
+# commands, aliases and help strings
+#
+
+ALIASES = {
+  'lp': 'load-pe',
+  'x': 'exit'
+}
+
+HELP_STRINGS = {
+  'load-pe': 'Load a PE file',
+  'exit': 'Exit this program'
+}
+
+def get_help():
+  help_text = ''
+  for (command, help_string) in HELP_STRINGS.items():
+    command_and_alias = command
+    for (alias, original) in ALIASES.items():
+      if original == command:
+        command_and_alias = '%s (%s)' % (original, alias)
+    help_text += ('%s %s\n' % (command_and_alias.ljust(16), help_string))
+  return help_text
 
 #
 # run UI loop
@@ -24,6 +47,15 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
 
 class CommandHandler():
   def handle(self, command):
+
+    # substitute a command for any alias
+
+    replacement = ALIASES.get(command, None)
+    if replacement:
+      command = replacement
+
+    # handle the command
+
     if command == 'exit':
       exit(0)
     elif command == 'load-pe':
@@ -31,7 +63,9 @@ class CommandHandler():
         analysis = winutils.analyze_pe_file(f)
         main_ui.output(analysis)
     else:
-      main_ui.output('help is on the way')
+      help_text = get_help()
+      main_ui.output(help_text)
+
 
 command_handler = CommandHandler()
 main_ui = ui.UI(command_handler)
@@ -40,23 +74,6 @@ while True:
   main_ui.refresh() # command handler will exit
 
 
-
-
-
-#
-# Analyze the PE file on disk
-#
-
-#TODO: should be able to get this from memory now that we analyze in memory
-pe_header = None # used later in debugging to find the address of modules
-
-with open(PE_FILE, 'rb') as f:
-  print('Information for PE file %s:' % PE_FILE)
-  print()
-
-  pe_header = winutils.analyze_pe_file(f)
-
-print()
 
 
 
