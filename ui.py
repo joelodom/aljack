@@ -61,7 +61,7 @@ class TextOutputBox():
     return self.lines[i]
 
 OUTPUT_HEIGHTS = 80
-INPUT_HEIGHT = 10
+INPUT_HEIGHT = 10 # must be at least 3
 TOTAL_WIDTH = 79*3
 
 class UI():
@@ -72,10 +72,12 @@ class UI():
 
   output_buffers = [] # outputs to the right of output3
 
+  secondary_text = '' # meant to be only one line
+
   def __init__(self, command_handler):
     self.command_handler = command_handler
 
-  def output(self, text):
+  def primary_output(self, text):
     '''
     Displays output, pushing old output to the right.
     '''
@@ -85,9 +87,12 @@ class UI():
     self.output2.lines = self.output1.lines
     self.output1.set_text(text)
 
+  def secondary_output(self, text):
+    self.secondary_text = text
+
   def refresh(self):
 
-    # display the output boxis
+    # display the output boxes
     os.system('cls')
     for i in range(OUTPUT_HEIGHTS):
       print('%s%s%s' % (
@@ -95,8 +100,10 @@ class UI():
 
     # handle input box
 
-    for i in range(INPUT_HEIGHT - 1):
+    for i in range(INPUT_HEIGHT - 3):
       print()
+    print(self.secondary_text)
+    print()
 
     command = ''
 

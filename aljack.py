@@ -18,6 +18,111 @@ if sys.version_info.major != 3 or sys.version_info.minor != 5:
     'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
 
 #
+# states, commands, aliases, help strings, etc...
+#
+
+STATE_UNLOADED = 'UNLOADED'
+STATE_STATIC_ANALYSIS = 'STATIC ANALYSIS'
+STATE_RUNNING = 'RUNNING'
+STATE_SUSPENDED = 'SUSPENDED'
+
+current_state = STATE_UNLOADED # the initial state
+
+COMMAND_LOAD = 'load'
+COMMAND_UNLOAD = 'unload'
+COMMAND_EXIT = 'exit'
+
+ALIASES = {
+  'l': COMMAND_LOAD,
+  'u': COMMAND_UNLOAD,
+  'x': COMMAND_EXIT
+}
+
+ALLOWED_COMMANDS = {
+  STATE_UNLOADED: (COMMAND_LOAD, COMMAND_EXIT),
+  STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT),
+  STATE_RUNNING: (COMMAND_EXIT),
+  STATE_SUSPENDED: (COMMAND_EXIT)
+}
+
+HELP_STRINGS = {
+  COMMAND_LOAD: 'Load a binary file for analysis',
+  COMMAND_UNLOAD: 'Unload a loaded binary file',
+  COMMAND_EXIT: 'Exit this program'
+}
+
+#
+# code for main UI loop
+#
+
+
+def get_command_help_string(command):
+  command_and_alias = command
+  for (alias, original) in ALIASES.items():
+    if original == command:
+      command_and_alias = '%s (%s)' % (original, alias)
+  return '%s %s' % (command_and_alias.ljust(16), HELP_STRINGS[command])
+
+def get_help_for_state(state):
+  help_text = 'Current state is %s.  Allowed commands:\n' % current_state
+  for command in ALLOWED_COMMANDS[state]:
+    help_text += '  %s\n' % get_command_help_string(command)
+  return help_text
+
+def get_command_from_possible_alias(possible_alias):
+  replacement = ALIASES.get(possible_alias, None)
+  if replacement:
+    return replacement
+  return possible_alias # this was not an alias
+
+
+class CommandHandler():
+  def handle(self, command):
+    global current_state
+    main_ui.secondary_output('')
+
+    # substitute a command for any alias
+    command = get_command_from_possible_alias(command)
+
+    # check that this command is allowed for this state
+    if not command in ALLOWED_COMMANDS[current_state]:
+      help_text = get_help_for_state(current_state)
+      main_ui.primary_output(help_text)
+      return
+
+    # exit should be allowed for any state
+    if command == COMMAND_EXIT:
+      exit(0)
+
+    # handle command based on state
+
+    if current_state == STATE_UNLOADED:
+
+      if command == COMMAND_LOAD:
+        with open(PE_FILE, 'rb') as f:
+          # TODO: this doesn't actually "load" the PE file, it just reads it for now
+          analysis = winutils.analyze_pe_file(f)
+          main_ui.primary_output(analysis)
+          current_state = STATE_STATIC_ANALYSIS
+          return
+
+    elif current_state == STATE_STATIC_ANALYSIS:
+
+      if command == COMMAND_UNLOAD:
+        current_state = STATE_UNLOADED
+        main_ui.secondary_output('Unloaded.')
+        return
+
+    raise Exception('unhandled command / state (%s / %s)' % (command, current_state))
+
+
+command_handler = CommandHandler()
+main_ui = ui.UI(command_handler)
+
+while True:
+  main_ui.refresh() # command handler will exit
+
+#
 # Code to debug a runnnig process
 # TODO: this is experimental stuff to move bit-by-bit into a real work flow
 #
@@ -209,64 +314,3 @@ def debug_running_process():
 
   print('Done.')
   exit(0)
-
-#
-# commands, aliases and help strings
-#
-
-ALIASES = {
-  'lp': 'load-pe',
-  'x': 'exit',
-  'rp': 'run-pe'
-}
-
-HELP_STRINGS = {
-  'load-pe': 'Analyze a PE file on disk',
-  'exit': 'Exit this program',
-  'run-pe': 'Run a PE file in analysis mode'
-}
-
-def get_help():
-  help_text = ''
-  for (command, help_string) in HELP_STRINGS.items():
-    command_and_alias = command
-    for (alias, original) in ALIASES.items():
-      if original == command:
-        command_and_alias = '%s (%s)' % (original, alias)
-    help_text += ('%s %s\n' % (command_and_alias.ljust(16), help_string))
-  return help_text
-
-#
-# run UI loop
-#
-
-class CommandHandler():
-  def handle(self, command):
-
-    # substitute a command for any alias
-
-    replacement = ALIASES.get(command, None)
-    if replacement:
-      command = replacement
-
-    # handle the command
-
-    if command == 'exit':
-      exit(0)
-    elif command == 'load-pe':
-      with open(PE_FILE, 'rb') as f:
-        # TODO: this doesn't actually "load" the PE file, it just reads it for now
-        analysis = winutils.analyze_pe_file(f)
-        main_ui.output(analysis)
-    elif command == 'run-pe':
-      debug_running_process()
-    else:
-      help_text = get_help()
-      main_ui.output(help_text)
-
-
-command_handler = CommandHandler()
-main_ui = ui.UI(command_handler)
-
-while True:
-  main_ui.refresh() # command handler will exit
