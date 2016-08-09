@@ -9,8 +9,6 @@ import winapi
 import ui
 import winutils
 
-PE_FILE = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
-
 # start with a Python version check
 
 if sys.version_info.major != 3 or sys.version_info.minor != 5:
@@ -31,25 +29,36 @@ current_state = STATE_UNLOADED # the initial state
 COMMAND_LOAD = 'load'
 COMMAND_UNLOAD = 'unload'
 COMMAND_EXIT = 'exit'
+COMMAND_RUN = 'run'
+COMMAND_KILL = 'kill'
+COMMAND_BREAK = 'break'
 
 ALIASES = {
   'l': COMMAND_LOAD,
   'u': COMMAND_UNLOAD,
-  'x': COMMAND_EXIT
+  'x': COMMAND_EXIT,
+  'r': COMMAND_RUN,
+  'k': COMMAND_KILL,
+  'b': COMMAND_BREAK
 }
 
 ALLOWED_COMMANDS = {
   STATE_UNLOADED: (COMMAND_LOAD, COMMAND_EXIT),
-  STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT),
-  STATE_RUNNING: (COMMAND_EXIT),
-  STATE_SUSPENDED: (COMMAND_EXIT)
+  STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT, COMMAND_RUN),
+  STATE_RUNNING: (COMMAND_EXIT, COMMAND_KILL, COMMAND_BREAK),
+  STATE_SUSPENDED: (COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL)
 }
 
 HELP_STRINGS = {
-  COMMAND_LOAD: 'Load a binary file for analysis',
-  COMMAND_UNLOAD: 'Unload a loaded binary file',
-  COMMAND_EXIT: 'Exit this program'
+  COMMAND_LOAD: 'Load a binary file',
+  COMMAND_UNLOAD: 'Unload the loaded binary',
+  COMMAND_EXIT: 'Exit this program',
+  COMMAND_RUN: 'Run a newly loaded binary or continue from a suspended state',
+  COMMAND_KILL: 'Kill a running binary',
+  COMMAND_BREAK: 'Suspend a running binary'
 }
+
+loaded_binary = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
 
 #
 # code for main UI loop
@@ -84,25 +93,26 @@ class CommandHandler():
     # substitute a command for any alias
     command = get_command_from_possible_alias(command)
 
+    # exit should be allowed for any state
+    if command == COMMAND_EXIT:
+      exit(0)
+
     # check that this command is allowed for this state
     if not command in ALLOWED_COMMANDS[current_state]:
       help_text = get_help_for_state(current_state)
       main_ui.primary_output(help_text)
       return
 
-    # exit should be allowed for any state
-    if command == COMMAND_EXIT:
-      exit(0)
-
     # handle command based on state
 
     if current_state == STATE_UNLOADED:
 
       if command == COMMAND_LOAD:
-        with open(PE_FILE, 'rb') as f:
+        with open(loaded_binary, 'rb') as f:
           # TODO: this doesn't actually "load" the PE file, it just reads it for now
           analysis = winutils.analyze_pe_file(f)
           main_ui.primary_output(analysis)
+          main_ui.secondary_output('Loaded %s' % loaded_binary)
           current_state = STATE_STATIC_ANALYSIS
           return
 
@@ -110,7 +120,28 @@ class CommandHandler():
 
       if command == COMMAND_UNLOAD:
         current_state = STATE_UNLOADED
-        main_ui.secondary_output('Unloaded.')
+        main_ui.secondary_output('Unloaded %s' % loaded_binary)
+        return
+      elif command == COMMAND_RUN:
+        main_ui.secondary_output('Under Construction')
+        return
+
+    elif current_state == STATE_RUNNING:
+
+      if command == COMMAND_KILL:
+        main_ui.secondary_output('Under Construction')
+        return
+      elif command == COMMAND_BREAK:
+        main_ui.secondary_output('Under Construction')
+        return
+
+    elif current_state == STATE_SUSPENDED:
+
+      if command == COMMAND_KILL:
+        main_ui.secondary_output('Under Construction')
+        return
+      elif command == COMMAND_RUN:
+        main_ui.secondary_output('Under Construction')
         return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))
