@@ -832,3 +832,24 @@ def analyze_pe_file(f): # code for experimentation
     rv += '  %s\n' % name
 
   return rv
+
+def create_process(binary):
+  '''
+  Starts a process with caller attached as debugger.
+
+  Returns a PROCESS_INFORMATION structure.
+  '''
+
+  creation_flags = DEBUG_PROCESS
+
+  startup_info = STARTUPINFOW()
+  startup_info.cb = ctypes.sizeof(startup_info)
+
+  process_info = PROCESS_INFORMATION()
+
+  if not CreateProcess(binary, nullptr, nullptr, nullptr,
+    FALSE, creation_flags, nullptr, nullptr,
+    ctypes.pointer(startup_info), ctypes.pointer(process_info)):
+      raise Exception('CreateProcess failed')
+
+  return process_info

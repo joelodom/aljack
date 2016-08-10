@@ -61,6 +61,15 @@ HELP_STRINGS = {
 loaded_binary = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
 
 #
+# debug event handlers
+#
+
+def handle_create_process_debug_event(debug_event):
+  return '%s:\n\n%s' % (
+    winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
+    winutils.create_process_debug_info_to_str(debug_event.u.CreateProcessInfo))
+
+#
 # code for main UI loop
 #
 
@@ -86,6 +95,8 @@ def get_command_from_possible_alias(possible_alias):
 
 
 class CommandHandler():
+  last_debug_event = None
+
   def handle(self, command):
     global current_state
     main_ui.secondary_output('')
@@ -123,7 +134,9 @@ class CommandHandler():
         main_ui.secondary_output('Unloaded %s' % loaded_binary)
         return
       elif command == COMMAND_RUN:
-        main_ui.secondary_output('Under Construction')
+        winutils.create_process(loaded_binary)
+        current_state = STATE_RUNNING
+        main_ui.secondary_output('Started %s' % loaded_binary)
         return
 
     elif current_state == STATE_RUNNING:
@@ -141,7 +154,10 @@ class CommandHandler():
         main_ui.secondary_output('Under Construction')
         return
       elif command == COMMAND_RUN:
-        main_ui.secondary_output('Under Construction')
+        if not winapi.ContinueDebugEvent(
+          self.last_debug_event.dwProcessId, self.last_debug_event.dwThreadId, winapi.DBG_CONTINUE):
+            raise Exception('ContinueDebugEvent failed')
+        current_state = STATE_RUNNING
         return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))
@@ -151,11 +167,41 @@ command_handler = CommandHandler()
 main_ui = ui.UI(command_handler)
 
 while True:
+  if current_state == STATE_RUNNING: # there is currently no user interaction when debugee running
+
+    # wait for a debug event
+
+    debug_event = winapi.DEBUG_EVENT()
+    command_handler.last_debug_event = debug_event
+    if not winapi.WaitForDebugEvent(ctypes.pointer(debug_event), winapi.INFINITE):
+      #if winapi.GetLastError() == winapi.ERROR_SEM_TIMEOUT:
+      #  continue
+      raise Exception('WaitForDebugEvent failed')
+    current_state = STATE_SUSPENDED
+
+    # handle the debug event
+
+    out_str = 'This must be set below'
+
+    if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
+      out_str = handle_create_process_debug_event(debug_event)
+    else:
+      debug_event_name = winutils.debug_event_code_to_str(debug_event.dwDebugEventCode)
+      raise Exception('unhandled debug event: %s' % debug_event_name)
+
+    main_ui.primary_output(out_str)
+
+  main_ui.set_prompt(current_state)
   main_ui.refresh() # command handler will exit
+
+
+
+
+
 
 #
 # Code to debug a runnnig process
-# TODO: this is experimental stuff to move bit-by-bit into a real work flow
+# TODO: this is experimental stuff to move bit-by-bit into a real work flow and then delete
 #
 
 def debug_running_process():

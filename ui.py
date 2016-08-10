@@ -74,6 +74,8 @@ class UI():
 
   secondary_text = '' # meant to be only one line
 
+  prompt = '' # text to display before the prompt
+
   def __init__(self, command_handler):
     self.command_handler = command_handler
 
@@ -89,6 +91,9 @@ class UI():
 
   def secondary_output(self, text):
     self.secondary_text = text
+
+  def set_prompt(self, text):
+    self.prompt = text
 
   def refresh(self):
 
@@ -113,7 +118,7 @@ class UI():
 
       sys.stdout.write('\r')
       sys.stdout.write(' ' * TOTAL_WIDTH)
-      sys.stdout.write('\r> %s' % command)
+      sys.stdout.write('\r%s> %s' % (self.prompt, command))
 
       k = msvcrt.getch()
 
