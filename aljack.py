@@ -58,7 +58,12 @@ HELP_STRINGS = {
   COMMAND_BREAK: 'Suspend a running binary'
 }
 
+#
+# global state information
+#
+
 loaded_binary = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
+process_info = None
 
 #
 # debug event handlers
@@ -68,6 +73,12 @@ def handle_create_process_debug_event(debug_event):
   return '%s:\n\n%s' % (
     winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
     winutils.create_process_debug_info_to_str(debug_event.u.CreateProcessInfo))
+
+def handle_load_dll_debug_event(debug_event):
+  global process_info
+  return '%s:\n\n%s' % (
+    winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
+    winutils.load_dll_debug_info_to_str(process_info.hProcess, debug_event.u.LoadDll))
 
 #
 # code for main UI loop
@@ -134,7 +145,8 @@ class CommandHandler():
         main_ui.secondary_output('Unloaded %s' % loaded_binary)
         return
       elif command == COMMAND_RUN:
-        winutils.create_process(loaded_binary)
+        global process_info
+        process_info = winutils.create_process(loaded_binary)
         current_state = STATE_RUNNING
         main_ui.secondary_output('Started %s' % loaded_binary)
         return
@@ -185,6 +197,8 @@ while True:
 
     if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
       out_str = handle_create_process_debug_event(debug_event)
+    elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
+      out_str = handle_load_dll_debug_event(debug_event)
     else:
       debug_event_name = winutils.debug_event_code_to_str(debug_event.dwDebugEventCode)
       raise Exception('unhandled debug event: %s' % debug_event_name)
