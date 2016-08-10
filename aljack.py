@@ -80,6 +80,12 @@ def handle_load_dll_debug_event(debug_event):
     winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
     winutils.load_dll_debug_info_to_str(process_info.hProcess, debug_event.u.LoadDll))
 
+def handle_exception_debug_event(debug_event):
+  return '%s:\n\n%s' % (
+    winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
+    winutils.exception_debug_info_to_str(process_info.hProcess, debug_event.u.Exception))
+
+
 #
 # code for main UI loop
 #
@@ -199,6 +205,8 @@ while True:
       out_str = handle_create_process_debug_event(debug_event)
     elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
       out_str = handle_load_dll_debug_event(debug_event)
+    elif debug_event.dwDebugEventCode == winapi.EXCEPTION_DEBUG_EVENT:
+      out_str = handle_exception_debug_event(debug_event)
     else:
       debug_event_name = winutils.debug_event_code_to_str(debug_event.dwDebugEventCode)
       raise Exception('unhandled debug event: %s' % debug_event_name)
