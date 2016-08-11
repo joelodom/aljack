@@ -305,6 +305,9 @@ def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
     load_dll_debug_info.fUnicode)
   )
 
+def unload_dll_debug_info_to_str(process_handle, load_dll_debug_info):
+  return 'lpBaseOfDll: 0x%08x\n' % load_dll_debug_info.lpBaseOfDll
+
 def debug_event_to_str(debug_event):
   return '%s' % debug_event_code_to_str(debug_event.dwDebugEventCode)
 

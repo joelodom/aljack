@@ -32,6 +32,8 @@ COMMAND_EXIT = 'exit'
 COMMAND_RUN = 'run'
 COMMAND_KILL = 'kill'
 COMMAND_BREAK = 'break'
+COMMAND_IGNORE = 'ignore'
+COMMAND_SHOW_LOADED_IMAGES = 'show-loaded-images'
 
 ALIASES = {
   'l': COMMAND_LOAD,
@@ -39,14 +41,17 @@ ALIASES = {
   'x': COMMAND_EXIT,
   'r': COMMAND_RUN,
   'k': COMMAND_KILL,
-  'b': COMMAND_BREAK
+  'b': COMMAND_BREAK,
+  'i': COMMAND_IGNORE,
+  'sli': COMMAND_SHOW_LOADED_IMAGES
 }
 
 ALLOWED_COMMANDS = {
   STATE_UNLOADED: (COMMAND_LOAD, COMMAND_EXIT),
   STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT, COMMAND_RUN),
   STATE_RUNNING: (COMMAND_EXIT, COMMAND_KILL, COMMAND_BREAK),
-  STATE_SUSPENDED: (COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL)
+  STATE_SUSPENDED: (
+    COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL, COMMAND_IGNORE, COMMAND_SHOW_LOADED_IMAGES)
 }
 
 HELP_STRINGS = {
@@ -55,7 +60,9 @@ HELP_STRINGS = {
   COMMAND_EXIT: 'Exit this program',
   COMMAND_RUN: 'Run a newly loaded binary or continue from a suspended state',
   COMMAND_KILL: 'Kill a running binary',
-  COMMAND_BREAK: 'Suspend a running binary'
+  COMMAND_BREAK: 'Suspend a running binary',
+  COMMAND_IGNORE: 'Ignore a partular kind of event (currently only LOAD_DLL_DEBUG_EVENT)',
+  COMMAND_SHOW_LOADED_IMAGES: 'Show the images (DLLs) currently loaded'
 }
 
 #
@@ -64,6 +71,8 @@ HELP_STRINGS = {
 
 loaded_binary = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
 process_info = None
+loaded_images = {} # dictionary of ctypes.wintypes.LPVOID to strings (image names)
+ignore_dll_load = False # TODO: make a list of ignored events
 
 #
 # debug event handlers
@@ -76,15 +85,41 @@ def handle_create_process_debug_event(debug_event):
 
 def handle_load_dll_debug_event(debug_event):
   global process_info
+
+  load_dll_debug_info = debug_event.u.LoadDll
+  base_of_dll = load_dll_debug_info.lpBaseOfDll
+  process_handle = process_info.hProcess
+
+  loaded_images[base_of_dll] = winutils.lp_image_name_to_str(process_handle, load_dll_debug_info)
+
   return '%s:\n\n%s' % (
     winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
-    winutils.load_dll_debug_info_to_str(process_info.hProcess, debug_event.u.LoadDll))
+    winutils.load_dll_debug_info_to_str(process_handle, load_dll_debug_info))
+
+def handle_unload_dll_debug_event(debug_event):
+  global process_info
+
+  unload_dll_debug_info = debug_event.u.UnloadDll
+  base_of_dll = unload_dll_debug_info.lpBaseOfDll
+  process_handle = process_info.hProcess
+
+  image_name = loaded_images[base_of_dll]
+
+  del loaded_images[base_of_dll]
+
+  return '%s:\n\n%s\n\n(%s)' % (
+    winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
+    winutils.unload_dll_debug_info_to_str(process_info.hProcess, debug_event.u.UnloadDll),
+    image_name)
 
 def handle_exception_debug_event(debug_event):
   return '%s:\n\n%s' % (
     winutils.debug_event_code_to_str(debug_event.dwDebugEventCode),
     winutils.exception_debug_info_to_str(process_info.hProcess, debug_event.u.Exception))
 
+def is_event_ignored(debug_event):
+  global ignore_dll_load
+  return ignore_dll_load and (debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT)
 
 #
 # code for main UI loop
@@ -177,6 +212,21 @@ class CommandHandler():
             raise Exception('ContinueDebugEvent failed')
         current_state = STATE_RUNNING
         return
+      elif command == COMMAND_IGNORE:
+        global ignore_dll_load
+        ignore_dll_load = not ignore_dll_load
+        if ignore_dll_load:
+          main_ui.secondary_output('LOAD_DLL_DEBUG_EVENT ignored.')
+        else:
+          main_ui.secondary_output('LOAD_DLL_DEBUG_EVENT no longer ignored.')
+        return
+      elif command == COMMAND_SHOW_LOADED_IMAGES:
+        global loaded_images
+        outstr = 'Loaded Images:\n\n'
+        for (k, v) in loaded_images.items():
+          outstr += '  0x%08x: %s\n' % (k, v)
+        main_ui.primary_output(outstr)
+        return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))
 
@@ -195,23 +245,39 @@ while True:
       #if winapi.GetLastError() == winapi.ERROR_SEM_TIMEOUT:
       #  continue
       raise Exception('WaitForDebugEvent failed')
-    current_state = STATE_SUSPENDED
 
     # handle the debug event
 
-    out_str = 'This must be set below'
+    out_str = None
 
     if debug_event.dwDebugEventCode == winapi.CREATE_PROCESS_DEBUG_EVENT:
       out_str = handle_create_process_debug_event(debug_event)
     elif debug_event.dwDebugEventCode == winapi.LOAD_DLL_DEBUG_EVENT:
       out_str = handle_load_dll_debug_event(debug_event)
+    elif debug_event.dwDebugEventCode == winapi.UNLOAD_DLL_DEBUG_EVENT:
+      out_str = handle_unload_dll_debug_event(debug_event)
     elif debug_event.dwDebugEventCode == winapi.EXCEPTION_DEBUG_EVENT:
       out_str = handle_exception_debug_event(debug_event)
+    elif debug_event.dwDebugEventCode == winapi.EXIT_PROCESS_DEBUG_EVENT:
+      main_ui.secondary_output('Process exited.')
+      current_state = STATE_STATIC_ANALYSIS
+      continue
     else:
       debug_event_name = winutils.debug_event_code_to_str(debug_event.dwDebugEventCode)
       raise Exception('unhandled debug event: %s' % debug_event_name)
 
-    main_ui.primary_output(out_str)
+    # change state and display output, if not ignored
+
+    if is_event_ignored(debug_event):
+      if not winapi.ContinueDebugEvent(
+        debug_event.dwProcessId, debug_event.dwThreadId, winapi.DBG_CONTINUE):
+          raise Exception('ContinueDebugEvent failed')
+      continue
+
+    current_state = STATE_SUSPENDED
+
+    if out_str != None:
+      main_ui.primary_output(out_str)
 
   main_ui.set_prompt(current_state)
   main_ui.refresh() # command handler will exit
