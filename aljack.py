@@ -34,6 +34,7 @@ COMMAND_KILL = 'kill'
 COMMAND_BREAK = 'break'
 COMMAND_IGNORE = 'ignore'
 COMMAND_SHOW_LOADED_IMAGES = 'show-loaded-images'
+COMMAND_SHOW_IMAGE_INFORMATION = 'show-image-information'
 
 ALIASES = {
   'l': COMMAND_LOAD,
@@ -43,15 +44,16 @@ ALIASES = {
   'k': COMMAND_KILL,
   'b': COMMAND_BREAK,
   'i': COMMAND_IGNORE,
-  'sli': COMMAND_SHOW_LOADED_IMAGES
+  'sli': COMMAND_SHOW_LOADED_IMAGES,
+  'sii': COMMAND_SHOW_IMAGE_INFORMATION
 }
 
 ALLOWED_COMMANDS = {
   STATE_UNLOADED: (COMMAND_LOAD, COMMAND_EXIT),
   STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT, COMMAND_RUN),
   STATE_RUNNING: (COMMAND_EXIT, COMMAND_KILL, COMMAND_BREAK),
-  STATE_SUSPENDED: (
-    COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL, COMMAND_IGNORE, COMMAND_SHOW_LOADED_IMAGES)
+  STATE_SUSPENDED: (COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL, COMMAND_IGNORE,
+    COMMAND_SHOW_LOADED_IMAGES, COMMAND_SHOW_IMAGE_INFORMATION)
 }
 
 HELP_STRINGS = {
@@ -62,7 +64,8 @@ HELP_STRINGS = {
   COMMAND_KILL: 'Kill a running binary',
   COMMAND_BREAK: 'Suspend a running binary',
   COMMAND_IGNORE: 'Ignore a partular kind of event (currently only LOAD_DLL_DEBUG_EVENT)',
-  COMMAND_SHOW_LOADED_IMAGES: 'Show the images (DLLs) currently loaded'
+  COMMAND_SHOW_LOADED_IMAGES: 'Show the images (DLLs) currently loaded',
+  COMMAND_SHOW_IMAGE_INFORMATION: 'Show information on a particular loaded image'
 }
 
 #
@@ -149,7 +152,7 @@ def get_command_from_possible_alias(possible_alias):
 class CommandHandler():
   last_debug_event = None
 
-  def handle(self, command):
+  def handle(self, command, args):
     global current_state
     main_ui.secondary_output('')
 
@@ -226,6 +229,22 @@ class CommandHandler():
         for (k, v) in loaded_images.items():
           outstr += '  0x%08x: %s\n' % (k, v)
         main_ui.primary_output(outstr)
+        return
+
+      elif command == COMMAND_SHOW_IMAGE_INFORMATION:
+        # analyze the DLL in memory
+        if len(args) != 1:
+          main_ui.secondary_output('%s expects an image name.' % COMMAND_SHOW_IMAGE_INFORMATION)
+          return
+        image_name = args[0]
+        global loaded_images
+        for (k, v) in loaded_images.items():
+          if v == image_name:
+            f = winutils.MemoryMetaFile(process_info.hProcess, k)
+            outstr = winutils.analyze_pe_file(f)
+            main_ui.primary_output(outstr)
+            return
+        main_ui.secondary_output('Image %s not found in loaded images.' % image_name)
         return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))

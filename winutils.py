@@ -843,7 +843,7 @@ def create_process(binary):
   Returns a PROCESS_INFORMATION structure.
   '''
 
-  creation_flags = DEBUG_PROCESS
+  creation_flags = DEBUG_PROCESS | CREATE_NEW_CONSOLE
 
   startup_info = STARTUPINFOW()
   startup_info.cb = ctypes.sizeof(startup_info)

@@ -148,4 +148,5 @@ class UI():
 
         command += c
 
-    self.command_handler.handle(command)
+    s = command.split()
+    self.command_handler.handle(s[0], s[1:])
