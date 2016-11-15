@@ -8,6 +8,7 @@ import ctypes
 import winapi
 import ui
 import winutils
+import utils
 
 # start with a Python version check
 
@@ -72,7 +73,7 @@ HELP_STRINGS = {
 # global state information
 #
 
-loaded_binary = r'E:\Dropbox\aljack\etc\stack1.exe' # TODO: for development only
+loaded_binary = r'E:\Dropbox\shared_with_work\aljack\etc\stack1.exe' # TODO: for development only
 process_info = None
 loaded_images = {} # dictionary of ctypes.wintypes.LPVOID to strings (image names)
 ignore_dll_load = False # TODO: make a list of ignored events
@@ -315,7 +316,7 @@ while True:
 #        # CREATE_PROCESS_DEBUG_EVENT
 #
 #        create_process_debug_info = debug_event.u.CreateProcessInfo
-#        print(ui.indent_string(
+#        print(utils.indent_string(
 #          winutils.create_process_debug_info_to_str(create_process_debug_info)))
 #        print()
 #
@@ -337,7 +338,7 @@ while True:
 #
 #        # LOAD_DLL_DEBUG_EVENT
 #        load_dll_debug_info = debug_event.u.LoadDll
-#        print(ui.indent_string(winutils.load_dll_debug_info_to_str(
+#        print(utils.indent_string(winutils.load_dll_debug_info_to_str(
 #          process_info.hProcess, load_dll_debug_info)))
 #        print()
 #
@@ -359,7 +360,7 @@ while True:
 #        print('  Thread State:')
 #        if not winapi.Wow64GetThreadContext(thread_handle, ctypes.pointer(context)):
 #            raise Exception('GetThreadContext failed')
-#        print(ui.indent_string(winutils.wow64_context_to_str(context), '    '))
+#        print(utils.indent_string(winutils.wow64_context_to_str(context), '    '))
 #        print()
 #
 #      if image_base_address != None:
@@ -369,7 +370,7 @@ while True:
 #          winapi.IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress
 #        print('  Process Import Table (at RVA 0x%08x):' % import_table_rva)
 #        print()
-#        print(ui.indent_string(winutils.import_table_to_str(
+#        print(utils.indent_string(winutils.import_table_to_str(
 #          process_info.hProcess, image_base_address, import_table_rva), '    '))
 #        print()
 #

@@ -1,12 +1,11 @@
-import binascii
-
 #
 # Windows API utilities by Joel Odom.
 #
 
-from winapi import *
+import binascii
 
-import ui
+import utils
+from winapi import *
 
 def image_file_characteristics_to_str(characteristics):
 
@@ -174,7 +173,7 @@ def show_memory_information(process_handle, pointer):
   status = VirtualQueryEx(
     process_handle, pointer, ctypes.pointer(memory_basic_info), ctypes.sizeof(memory_basic_info))
   if status == ctypes.sizeof(memory_basic_info):
-    print(ui.indent_string(memory_basic_info_to_str(memory_basic_info)))
+    print(utils.indent_string(memory_basic_info_to_str(memory_basic_info)))
     print()
   else:
     print('VirtualQueryEx failed')
@@ -418,7 +417,7 @@ def image_file_header_to_str(image_file_header):
     image_file_header.NumberOfSymbols,
     image_file_header.SizeOfOptionalHeader,
     image_file_header.Characteristics,
-    ui.indent_string(image_file_characteristics_to_str(image_file_header.Characteristics))
+    utils.indent_string(image_file_characteristics_to_str(image_file_header.Characteristics))
     ))
 
 def image_optional_header_to_str(image_optional_header):
@@ -426,7 +425,7 @@ def image_optional_header_to_str(image_optional_header):
     'Data Directory:\n'
     '%s'
 
-    % (ui.indent_string(data_directory_to_str(image_optional_header.DataDirectory))
+    % (utils.indent_string(data_directory_to_str(image_optional_header.DataDirectory))
     ))
 
 def pe_header_to_str(pe_header):
@@ -437,8 +436,8 @@ def pe_header_to_str(pe_header):
     'Image Optional Headers:\n'
     '%s\n'
 
-    % (ui.indent_string(image_file_header_to_str(pe_header.image_file_header)),
-    ui.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
+    % (utils.indent_string(image_file_header_to_str(pe_header.image_file_header)),
+    utils.indent_string(image_optional_header_to_str(pe_header.image_optional_header))
   ))
 
 def get_image_import_name(process_handle, image_base_address, rva):
@@ -515,10 +514,10 @@ def import_table_to_str(process_handle, image_base_address, rva):
         image_import_descriptor.TimeDateStamp,
         image_import_descriptor.ForwarderChain,
         image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
-        ui.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
           image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk, True)),
         image_import_descriptor.FirstThunk,
-        ui.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
           image_import_descriptor.FirstThunk, False))
       ))
     else:
@@ -537,10 +536,10 @@ def import_table_to_str(process_handle, image_base_address, rva):
         image_import_descriptor.TimeDateStamp,
         image_import_descriptor.ForwarderChain,
         image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk,
-        ui.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
           image_import_descriptor.DUMMYUNIONNAME.OriginalFirstThunk, True)),
         image_import_descriptor.FirstThunk,
-        ui.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
+        utils.indent_string(image_import_by_name_array_to_str(process_handle, image_base_address,
           image_import_descriptor.FirstThunk, True))
       ))
 
