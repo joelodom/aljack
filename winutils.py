@@ -179,10 +179,11 @@ class TestImageFileHeaderUtilities(unittest.TestCase):
     machine = image_file_machine_to_str(self.image_file_header.Machine)
     self.assertEqual('IMAGE_FILE_MACHINE_I386', machine)
 
-  # TODO: there are more tests to add for the related utility functions above
+  def test_image_file_header_to_str(self):
+    s = image_file_header_to_str(self.image_file_header)
 
 #
-# TODO: continue adding tests and documentation here
+# code to deal with debug events
 #
 
 def debug_event_code_to_str(debug_event_code):
@@ -229,6 +230,98 @@ def create_process_debug_info_to_str(create_process_debug_info):
     create_process_debug_info.lpImageName,
     create_process_debug_info.fUnicode)
   )
+
+def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
+  if not load_dll_debug_info.fUnicode:
+    raise Exception('need to handle non-Unicode')
+
+  return (
+    'hFile: 0x%08x\n'
+    'lpBaseOfDll: 0x%08x\n'
+    'dwDebugInfoFileOffset: 0x%08x\n'
+    'nDebugInfoSize: %s\n'
+    'lpImageName: %s\n'
+    'fUnicode: %s'
+    % (load_dll_debug_info.hFile,
+    load_dll_debug_info.lpBaseOfDll,
+    load_dll_debug_info.dwDebugInfoFileOffset,
+    load_dll_debug_info.nDebugInfoSize,
+    lp_image_name_to_str(process_handle, load_dll_debug_info),
+    load_dll_debug_info.fUnicode)
+  )
+
+def unload_dll_debug_info_to_str(process_handle, load_dll_debug_info):
+  return 'lpBaseOfDll: 0x%08x\n' % load_dll_debug_info.lpBaseOfDll
+
+def debug_event_to_str(debug_event):
+  return '%s' % debug_event_code_to_str(debug_event.dwDebugEventCode)
+
+def exception_debug_info_to_str(process_handle, exception_debug_info):
+  return (
+    'ExceptionRecord:\n'
+    '%s'
+    %
+    exception_record_to_str(process_handle, exception_debug_info.ExceptionRecord)
+  )
+
+def lp_image_name_to_str(process_handle, load_dll_debug_info):
+  #  MSDN information about lpImageName
+  #
+  #  A pointer to the file name associated with hFile. This member may be NULL,
+  #  or it may contain the address of a string pointer in the address space of
+  #  the process being debugged. That address may, in turn, either be NULL or
+  #  point to the actual filename. If fUnicode is a nonzero value, the name
+  #  string is Unicode; otherwise, it is ANSI.
+  #
+  #  This member is strictly optional. Debuggers must be prepared to handle the
+  #  case where lpImageName is NULL or *lpImageName (in the address space of
+  #  the process being debugged) is NULL. Specifically, the system will never
+  #  provide an image name for a create process event, and it will not likely
+  #  pass an image name for the first DLL event. The system will also never
+  #  provide this information in the case of debugging events that originate
+  #  from a call to the DebugActiveProcess function.
+
+  if not load_dll_debug_info.fUnicode:
+    raise Exception('need to handle non-Unicode')
+
+  image_name = '<< no image name available >>'
+
+  if load_dll_debug_info.lpImageName:
+    p = read_dword_from_remote_process(process_handle, load_dll_debug_info.lpImageName)
+    if p:
+      image_name = read_wstring_from_remote_process(process_handle, p)
+
+  return image_name
+
+class TestDebugEventUtilities(unittest.TestCase): # TODO
+
+  def setUp(self):
+    pass
+
+  def test_debug_event_code_to_str(self):
+    pass
+
+  def test_create_process_debug_info_to_str(self):
+    pass
+
+  def test_load_dll_debug_info_to_str(self):
+    pass
+
+  def test_unload_dll_debug_info_to_str(self):
+    pass
+
+  def test_debug_event_to_str(self):
+    pass
+
+  def test_exception_debug_info_to_str(self):
+    pass
+
+  def test_lp_image_name_to_str(self):
+    pass
+
+#
+# remote process memory access utilities
+#
 
 def memory_basic_info_to_str(memory_basic_info):
   return (
@@ -337,76 +430,14 @@ def read_structure_from_remote_process(process_handle, pointer, structure):
     show_memory_information(process_handle, pointer)
   ctypes.memmove(ctypes.addressof(structure), buf, ctypes.sizeof(structure))
 
-def lp_image_name_to_str(process_handle, load_dll_debug_info):
-  #  MSDN information about lpImageName
-  #
-  #  A pointer to the file name associated with hFile. This member may be NULL,
-  #  or it may contain the address of a string pointer in the address space of
-  #  the process being debugged. That address may, in turn, either be NULL or
-  #  point to the actual filename. If fUnicode is a nonzero value, the name
-  #  string is Unicode; otherwise, it is ANSI.
-  #
-  #  This member is strictly optional. Debuggers must be prepared to handle the
-  #  case where lpImageName is NULL or *lpImageName (in the address space of
-  #  the process being debugged) is NULL. Specifically, the system will never
-  #  provide an image name for a create process event, and it will not likely
-  #  pass an image name for the first DLL event. The system will also never
-  #  provide this information in the case of debugging events that originate
-  #  from a call to the DebugActiveProcess function.
+class TestMemoryAccessUtilities(unittest.TestCase): # TODO
 
-  if not load_dll_debug_info.fUnicode:
-    raise Exception('need to handle non-Unicode')
+  def setUp(self):
+    pass
 
-  image_name = '<< no image name available >>'
-
-  if load_dll_debug_info.lpImageName:
-    p = read_dword_from_remote_process(process_handle, load_dll_debug_info.lpImageName)
-    if p:
-      image_name = read_wstring_from_remote_process(process_handle, p)
-
-  return image_name
-
-def load_dll_debug_info_to_str(process_handle, load_dll_debug_info):
-  if not load_dll_debug_info.fUnicode:
-    raise Exception('need to handle non-Unicode')
-
-  return (
-    'hFile: 0x%08x\n'
-    'lpBaseOfDll: 0x%08x\n'
-    'dwDebugInfoFileOffset: 0x%08x\n'
-    'nDebugInfoSize: %s\n'
-    'lpImageName: %s\n'
-    'fUnicode: %s'
-    % (load_dll_debug_info.hFile,
-    load_dll_debug_info.lpBaseOfDll,
-    load_dll_debug_info.dwDebugInfoFileOffset,
-    load_dll_debug_info.nDebugInfoSize,
-    lp_image_name_to_str(process_handle, load_dll_debug_info),
-    load_dll_debug_info.fUnicode)
-  )
-
-def unload_dll_debug_info_to_str(process_handle, load_dll_debug_info):
-  return 'lpBaseOfDll: 0x%08x\n' % load_dll_debug_info.lpBaseOfDll
-
-def debug_event_to_str(debug_event):
-  return '%s' % debug_event_code_to_str(debug_event.dwDebugEventCode)
-
-def get_last_error_string():
-  error = GetLastError()
-  buf = ctypes.wintypes.LPWSTR()
-
-  status = FormatMessage(
-    FORMAT_MESSAGE_ALLOCATE_BUFFER  | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-    nullptr, error, 0, ctypes.cast(ctypes.byref(buf), ctypes.wintypes.LPWSTR), 0, nullptr);
-  if not status:
-    raise Exception('FormatMessage failed (%s)' % GetLastError())
-
-  message = buf.value
-
-  if LocalFree(buf) != nullptr:
-    raise Exception('LocalFree failed (%s)' % GetLastError())
-
-  return '%s (%s)' % (message, error)
+#
+# context utilities
+#
 
 def context_to_str(context):
   return (
@@ -421,6 +452,15 @@ def context_to_str(context):
   )
 
 wow64_context_to_str = context_to_str
+
+class TestContextUtilities(unittest.TestCase): # TODO
+
+  def setUp(self):
+    pass
+
+#
+# these utilities need to be categorized and put under test (TODO)
+#
 
 class PEHeader():
   # a metaclass to hold various components of a PE header
@@ -724,14 +764,6 @@ def exception_record_to_str(process_handle, exception_record):
 
   return 'ExceptionCode: %s' % exception_code_str
 
-def exception_debug_info_to_str(process_handle, exception_debug_info):
-  return (
-    'ExceptionRecord:\n'
-    '%s'
-    %
-    exception_record_to_str(process_handle, exception_debug_info.ExceptionRecord)
-  )
-
 def output_memory_bytes_until_failure(process_handle, pointer):
   # slow and dumb approach
   show_memory_information(process_handle, pointer)
@@ -751,7 +783,7 @@ def output_memory_bytes_until_failure(process_handle, pointer):
   print()
 
 #
-# Utility functions to read structured data
+# utility functions to read structured data
 #
 
 def read_exact_number_of_bytes(f, n):
@@ -796,7 +828,7 @@ class MemoryMetaFile():
     self.position = position
 
 #
-# Code to handle PE reading and parsing
+# code to handle PE reading and parsing
 #
 
 def read_dos_header(f):
@@ -890,6 +922,10 @@ def analyze_pe_file(f): # code for experimentation
 
   return rv
 
+#
+# other utilities (to categorize)
+#
+
 def create_process(binary):
   '''
   Starts a process with caller attached as debugger.
@@ -911,6 +947,23 @@ def create_process(binary):
 
   return process_info
 
+
+def get_last_error_string():
+  error = GetLastError()
+  buf = ctypes.wintypes.LPWSTR()
+
+  status = FormatMessage(
+    FORMAT_MESSAGE_ALLOCATE_BUFFER  | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr, error, 0, ctypes.cast(ctypes.byref(buf), ctypes.wintypes.LPWSTR), 0, nullptr);
+  if not status:
+    raise Exception('FormatMessage failed (%s)' % GetLastError())
+
+  message = buf.value
+
+  if LocalFree(buf) != nullptr:
+    raise Exception('LocalFree failed (%s)' % GetLastError())
+
+  return '%s (%s)' % (message, error)
 
 if __name__ == '__main__':
     unittest.main()
