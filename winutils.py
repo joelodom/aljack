@@ -5,9 +5,17 @@
 import binascii
 
 import utils
+import unittest
 from winapi import *
 
+#
+# image file header utilities
+#
+
 def image_file_characteristics_to_str(characteristics):
+  '''
+  Converts the Characteristics WORD from an IMAGE_FILE_HEADER to a string.
+  '''
 
   chars = []
 
@@ -45,6 +53,9 @@ def image_file_characteristics_to_str(characteristics):
   return '\n'.join(chars)
 
 def image_file_machine_to_str(image_file_machine_machine):
+  '''
+  Converts the Machine WORD from an IMAGE_FILE_HEADER to a string.
+  '''
 
   if image_file_machine_machine == IMAGE_FILE_MACHINE_I386:
     return 'IMAGE_FILE_MACHINE_I386'
@@ -103,6 +114,76 @@ def image_file_machine_to_str(image_file_machine_machine):
 
   return 'Unknown'
 
+
+def time_stamp_to_str(ts):
+  # "value is seconds since December 31st, 1969, at 4:00 P.M."
+  # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
+  # Add unit test for this when it's ready
+  return 'TODO'
+
+def image_file_header_to_str(image_file_header):
+  return (
+    'Machine: %s (0x%04x)\n'
+    'Number of sections: %s\n'
+    'Timestamp: %s (%s)\n'
+    'Symbol table offset: %s\n'
+    'Number of symbols: %s\n'
+    'Size of optional header: %s\n'
+    'Characteristics (0x%04x):\n'
+    '%s'
+
+    % (image_file_machine_to_str(image_file_header.Machine), image_file_header.Machine,
+    image_file_header.NumberOfSections,
+    time_stamp_to_str(image_file_header.TimeDateStamp), image_file_header.TimeDateStamp,
+    image_file_header.PointerToSymbolTable,
+    image_file_header.NumberOfSymbols,
+    image_file_header.SizeOfOptionalHeader,
+    image_file_header.Characteristics,
+    utils.indent_string(image_file_characteristics_to_str(image_file_header.Characteristics))
+    ))
+
+
+class TestImageFileHeaderUtilities(unittest.TestCase):
+
+  def setUp(self):
+    '''
+    Loads a known PE to use for this test case.
+    '''
+
+    with open(r'E:\Dropbox\shared_with_work\aljack\etc\stack1.exe', 'rb') as f:
+      # read the DOS header
+      dos_header = read_dos_header(f)
+
+      # seek to and read the PE header
+      f.seek(dos_header.e_lfanew)
+      pe_header = read_pe_header(f)
+
+      self.image_file_header = pe_header.image_file_header
+
+  def test_image_file_characteristics_to_str(self):
+    chars = image_file_characteristics_to_str(self.image_file_header.Characteristics)
+
+    self.assertGreater(len(chars), 0)
+    self.assertNotEqual(chars[-1], '\n')
+
+    split_chars = chars.split()
+    self.assertEqual(len(split_chars), 6)
+    self.assertIn('IMAGE_FILE_RELOCS_STRIPPED', split_chars)
+    self.assertIn('IMAGE_FILE_EXECUTABLE_IMAGE', split_chars)
+    self.assertIn('IMAGE_FILE_LINE_NUMS_STRIPPED', split_chars)
+    self.assertIn('IMAGE_FILE_LOCAL_SYMS_STRIPPED', split_chars)
+    self.assertIn('IMAGE_FILE_32BIT_MACHINE', split_chars)
+    self.assertIn('IMAGE_FILE_DEBUG_STRIPPED', split_chars)
+
+  def test_image_file_machine_to_str(self):
+    machine = image_file_machine_to_str(self.image_file_header.Machine)
+    self.assertEqual('IMAGE_FILE_MACHINE_I386', machine)
+
+  # TODO: there are more tests to add for the related utility functions above
+
+#
+# TODO: continue adding tests and documentation here
+#
 
 def debug_event_code_to_str(debug_event_code):
   if debug_event_code == EXCEPTION_DEBUG_EVENT:
@@ -341,11 +422,6 @@ def context_to_str(context):
 
 wow64_context_to_str = context_to_str
 
-def time_stamp_to_str(ts):
-  # "value is seconds since December 31st, 1969, at 4:00 P.M."
-  # I'M NOT SURE I BELIEVE THAT BECAUSE IT'S A FEW HOURS DIFFERENT THAN THE UNIX EPOCH
-  return 'TODO'
-
 class PEHeader():
   # a metaclass to hold various components of a PE header
   pass
@@ -398,27 +474,6 @@ def data_directory_to_str(data_directory):
       data_directory[i].VirtualAddress, data_directory[i].Size))
 
   return rv
-
-def image_file_header_to_str(image_file_header):
-  return (
-    'Machine: %s (0x%04x)\n'
-    'Number of sections: %s\n'
-    'Timestamp: %s (%s)\n'
-    'Symbol table offset: %s\n'
-    'Number of symbols: %s\n'
-    'Size of optional header: %s\n'
-    'Characteristics (0x%04x):\n'
-    '%s'
-
-    % (image_file_machine_to_str(image_file_header.Machine), image_file_header.Machine,
-    image_file_header.NumberOfSections,
-    time_stamp_to_str(image_file_header.TimeDateStamp), image_file_header.TimeDateStamp,
-    image_file_header.PointerToSymbolTable,
-    image_file_header.NumberOfSymbols,
-    image_file_header.SizeOfOptionalHeader,
-    image_file_header.Characteristics,
-    utils.indent_string(image_file_characteristics_to_str(image_file_header.Characteristics))
-    ))
 
 def image_optional_header_to_str(image_optional_header):
   return (
@@ -855,3 +910,7 @@ def create_process(binary):
       raise Exception('CreateProcess failed')
 
   return process_info
+
+
+if __name__ == '__main__':
+    unittest.main()
