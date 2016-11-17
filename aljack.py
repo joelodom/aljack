@@ -153,9 +153,11 @@ def get_command_from_possible_alias(possible_alias):
 class CommandHandler():
   last_debug_event = None
 
-  def handle(self, command, args):
-    global current_state
-    main_ui.secondary_output('')
+  def handle(self, full_command):
+    global current_state, main_ui, loaded_images
+    main_ui.set_short_message('')
+
+    command, args = full_command[0], full_command[1:]
 
     # substitute a command for any alias
     command = get_command_from_possible_alias(command)
@@ -167,7 +169,7 @@ class CommandHandler():
     # check that this command is allowed for this state
     if not command in ALLOWED_COMMANDS[current_state]:
       help_text = get_help_for_state(current_state)
-      main_ui.primary_output(help_text)
+      main_ui.push_output(help_text)
       return
 
     # handle command based on state
@@ -178,8 +180,8 @@ class CommandHandler():
         with open(loaded_binary, 'rb') as f:
           # TODO: this doesn't actually "load" the PE file, it just reads it for now
           analysis = winutils.analyze_pe_file(f)
-          main_ui.primary_output(analysis)
-          main_ui.secondary_output('Loaded %s' % loaded_binary)
+          main_ui.push_output(analysis)
+          main_ui.set_short_message('Loaded %s' % loaded_binary)
           current_state = STATE_STATIC_ANALYSIS
           return
 
@@ -187,28 +189,28 @@ class CommandHandler():
 
       if command == COMMAND_UNLOAD:
         current_state = STATE_UNLOADED
-        main_ui.secondary_output('Unloaded %s' % loaded_binary)
+        main_ui.set_short_message('Unloaded %s' % loaded_binary)
         return
       elif command == COMMAND_RUN:
         global process_info
         process_info = winutils.create_process(loaded_binary)
         current_state = STATE_RUNNING
-        main_ui.secondary_output('Started %s' % loaded_binary)
+        main_ui.set_short_message('Started %s' % loaded_binary)
         return
 
     elif current_state == STATE_RUNNING:
 
       if command == COMMAND_KILL:
-        main_ui.secondary_output('Under Construction')
+        main_ui.set_short_message('Under Construction')
         return
       elif command == COMMAND_BREAK:
-        main_ui.secondary_output('Under Construction')
+        main_ui.set_short_message('Under Construction')
         return
 
     elif current_state == STATE_SUSPENDED:
 
       if command == COMMAND_KILL:
-        main_ui.secondary_output('Under Construction')
+        main_ui.set_short_message('Under Construction')
         return
       elif command == COMMAND_RUN:
         if not winapi.ContinueDebugEvent(
@@ -220,41 +222,44 @@ class CommandHandler():
         global ignore_dll_load
         ignore_dll_load = not ignore_dll_load
         if ignore_dll_load:
-          main_ui.secondary_output('LOAD_DLL_DEBUG_EVENT ignored.')
+          main_ui.set_short_message('LOAD_DLL_DEBUG_EVENT ignored.')
         else:
-          main_ui.secondary_output('LOAD_DLL_DEBUG_EVENT no longer ignored.')
+          main_ui.set_short_message('LOAD_DLL_DEBUG_EVENT no longer ignored.')
         return
       elif command == COMMAND_SHOW_LOADED_IMAGES:
-        global loaded_images
         outstr = 'Loaded Images:\n\n'
         for (k, v) in loaded_images.items():
           outstr += '  0x%08x: %s\n' % (k, v)
-        main_ui.primary_output(outstr)
+        main_ui.push_output(outstr)
         return
 
       elif command == COMMAND_SHOW_IMAGE_INFORMATION:
         # analyze the DLL in memory
         if len(args) != 1:
-          main_ui.secondary_output('%s expects an image name.' % COMMAND_SHOW_IMAGE_INFORMATION)
+          main_ui.set_short_message('%s expects an image name.' % COMMAND_SHOW_IMAGE_INFORMATION)
           return
         image_name = args[0]
-        global loaded_images
         for (k, v) in loaded_images.items():
           if v == image_name:
             f = winutils.MemoryMetaFile(process_info.hProcess, k)
             outstr = winutils.analyze_pe_file(f)
-            main_ui.primary_output(outstr)
+            main_ui.push_output(outstr)
             return
-        main_ui.secondary_output('Image %s not found in loaded images.' % image_name)
+        main_ui.set_short_message('Image %s not found in loaded images.' % image_name)
         return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))
 
 
 command_handler = CommandHandler()
-main_ui = ui.UI(command_handler)
+main_ui = ui.LegacyUI()
 
 while True:
+
+  main_ui.set_prompt(current_state)
+  command = main_ui.prompt() # blocks for input
+  command_handler.handle(command)
+
   if current_state == STATE_RUNNING: # there is currently no user interaction when debugee running
 
     # wait for a debug event
@@ -297,11 +302,7 @@ while True:
     current_state = STATE_SUSPENDED
 
     if out_str != None:
-      main_ui.primary_output(out_str)
-
-  main_ui.set_prompt(current_state)
-  main_ui.refresh() # command handler will exit
-
+      main_ui.push_output(out_str)
 
 
 

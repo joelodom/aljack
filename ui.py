@@ -6,6 +6,56 @@ import os
 import msvcrt
 import sys
 
+
+# TODO: Maybe create a generic command handler here?  At least stub the interface...
+
+
+
+class StackUI(): # think of it as an interface, not a class
+  '''
+  An abstract class that defines an interface for a text-oriented UI.
+
+  Inspired by RPN, but only intended for output.
+  '''
+
+  def set_prompt(self, text):
+    '''
+    Sets the prompt text.
+
+    This should be a very short indication of the UI state.
+    '''
+
+  def set_short_message(self, text):
+    '''
+    Set the short message.
+
+    This should be a one-line message to convey meta information, usually a short informational
+    message about the most recent command.
+    '''
+
+  def push_output(self, text):
+    '''
+    Pushes output onto the output stack.
+    '''
+
+  def prompt(self):
+    '''
+    Starts the UI and prompts the user fer a command.
+
+    Returns the command text.
+    '''
+
+
+
+
+
+
+
+
+#
+# legacy implementation (TODO: needs a lot work)
+#
+
 class TextOutputBox():
   '''
   A UI component that simply displays text.
@@ -59,7 +109,7 @@ OUTPUT_HEIGHTS = 80
 INPUT_HEIGHT = 10 # must be at least 3
 TOTAL_WIDTH = 79*3
 
-class UI():
+class LegacyUI():
 
   output1 = TextOutputBox(TOTAL_WIDTH//3, OUTPUT_HEIGHTS)
   output2 = TextOutputBox(TOTAL_WIDTH//3, OUTPUT_HEIGHTS)
@@ -69,12 +119,9 @@ class UI():
 
   secondary_text = '' # meant to be only one line
 
-  prompt = '' # text to display before the prompt
+  prompt_text = '' # text to display before the prompt
 
-  def __init__(self, command_handler):
-    self.command_handler = command_handler
-
-  def primary_output(self, text):
+  def push_output(self, text):
     '''
     Displays output, pushing old output to the right.
     '''
@@ -84,13 +131,13 @@ class UI():
     self.output2.lines = self.output1.lines
     self.output1.set_text(text)
 
-  def secondary_output(self, text):
+  def set_short_message(self, text):
     self.secondary_text = text
 
   def set_prompt(self, text):
-    self.prompt = text
+    self.prompt_text = text
 
-  def refresh(self):
+  def prompt(self):
 
     # display the output boxes
     os.system('cls')
@@ -113,7 +160,7 @@ class UI():
 
       sys.stdout.write('\r')
       sys.stdout.write(' ' * TOTAL_WIDTH)
-      sys.stdout.write('\r%s> %s' % (self.prompt, command))
+      sys.stdout.write('\r%s> %s' % (self.prompt_text, command))
 
       k = msvcrt.getch()
 
@@ -128,7 +175,7 @@ class UI():
           self.output3.lines = self.output_buffers.pop()
         else:
           self.output3.set_text('')
-        return
+        return self.prompt() # TODO: kind of sloppy
       elif k == b'\r':
         if len(command) == 0:
           return # nothing to report
@@ -143,5 +190,4 @@ class UI():
 
         command += c
 
-    s = command.split()
-    self.command_handler.handle(s[0], s[1:])
+    return command
