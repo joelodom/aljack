@@ -157,6 +157,14 @@ class CommandHandler():
 
   def handle(self, full_command):
     global current_state, main_ui, loaded_images
+
+    if not full_command:
+      return # don't do anything on blank commands
+
+    full_command = full_command.strip()
+    if len(full_command) == 0:
+      return # don't do anything on blank commands
+
     main_ui.set_short_message('')
 
     command, args = full_command[0], full_command[1:]

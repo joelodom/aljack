@@ -105,7 +105,7 @@ class TextOutputBox():
 
     return self.lines[i]
 
-OUTPUT_HEIGHTS = 80
+OUTPUT_HEIGHTS = 60
 INPUT_HEIGHT = 10 # must be at least 3
 TOTAL_WIDTH = 79*3
 
