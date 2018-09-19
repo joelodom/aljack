@@ -10,9 +10,9 @@ import ctypes.wintypes
 
 # start with a Python version check
 
-if sys.version_info.major != 3 or sys.version_info.minor != 5:
+if sys.version_info.major != 3 or sys.version_info.minor != 7:
   raise Exception(
-    'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
+    'Please run this script under Python 3.7 (or remove the version check if you feel brave).')
 
 nullptr = None
 

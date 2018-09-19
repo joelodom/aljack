@@ -150,7 +150,7 @@ class TestImageFileHeaderUtilities(unittest.TestCase):
     Loads a known PE to use for this test case.
     '''
 
-    with open(r'E:\Dropbox\shared_with_work\aljack\etc\stack1.exe', 'rb') as f:
+    with open(r'C:\Users\jo94\Dropbox\shared_with_work\aljack\etc\stack1.exe', 'rb') as f:
       # read the DOS header
       dos_header = read_dos_header(f)
 

@@ -14,9 +14,9 @@ import utils
 
 # start with a Python version check
 
-if sys.version_info.major != 3 or sys.version_info.minor != 5:
+if sys.version_info.major != 3 or sys.version_info.minor != 7:
   raise Exception(
-    'Please run this script under Python 3.5 (or remove the version check if you feel brave).')
+    'Please run this script under Python 3.7 (or remove the version check if you feel brave).')
 
 #
 # states, commands, aliases, help strings, etc...
@@ -75,7 +75,7 @@ HELP_STRINGS = {
 # global state information
 #
 
-loaded_binary = r'E:\Dropbox\shared_with_work\aljack\etc\stack1.exe' # TODO: for development only
+loaded_binary = r'C:\Users\jo94\Dropbox\shared_with_work\aljack\etc\stack1.exe' # TODO: for development only
 process_info = None
 loaded_images = {} # dictionary of ctypes.wintypes.LPVOID to strings (image names)
 ignore_dll_load = False # TODO: make a list of ignored events
