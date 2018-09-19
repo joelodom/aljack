@@ -2,6 +2,8 @@
 # A PE analyzer by Joel Odom
 #
 
+# TODO: Look over https://github.com/erocarrera/pefile/blob/master/pefile.py for ideas
+
 import sys
 import ctypes
 
