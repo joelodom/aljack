@@ -44,6 +44,8 @@ COMMAND_BREAK = 'break'
 COMMAND_IGNORE = 'ignore'
 COMMAND_SHOW_LOADED_IMAGES = 'show-loaded-images'
 COMMAND_SHOW_IMAGE_INFORMATION = 'show-image-information'
+COMMAND_SHOW_DISASSEMBLY = 'show-disassembly'
+COMMAND_SHOW_THREAD_CONTEXT = 'show-thread-context'
 
 ALIASES = {
   'l': COMMAND_LOAD,
@@ -54,15 +56,21 @@ ALIASES = {
   'b': COMMAND_BREAK,
   'i': COMMAND_IGNORE,
   'sli': COMMAND_SHOW_LOADED_IMAGES,
-  'sii': COMMAND_SHOW_IMAGE_INFORMATION
+  'sii': COMMAND_SHOW_IMAGE_INFORMATION,
+  'sd': COMMAND_SHOW_DISASSEMBLY,
+  'stc': COMMAND_SHOW_THREAD_CONTEXT
 }
 
 ALLOWED_COMMANDS = {
   STATE_UNLOADED: (COMMAND_LOAD, COMMAND_EXIT),
+
   STATE_STATIC_ANALYSIS: (COMMAND_UNLOAD, COMMAND_EXIT, COMMAND_RUN),
+
   STATE_RUNNING: (COMMAND_EXIT, COMMAND_KILL, COMMAND_BREAK),
+
   STATE_SUSPENDED: (COMMAND_EXIT, COMMAND_RUN, COMMAND_KILL, COMMAND_IGNORE,
-    COMMAND_SHOW_LOADED_IMAGES, COMMAND_SHOW_IMAGE_INFORMATION)
+    COMMAND_SHOW_LOADED_IMAGES, COMMAND_SHOW_IMAGE_INFORMATION,
+    COMMAND_SHOW_DISASSEMBLY, COMMAND_SHOW_THREAD_CONTEXT)
 }
 
 HELP_STRINGS = {
@@ -74,7 +82,9 @@ HELP_STRINGS = {
   COMMAND_BREAK: 'Suspend a running binary',
   COMMAND_IGNORE: 'Ignore a partular kind of event (currently only LOAD_DLL_DEBUG_EVENT)',
   COMMAND_SHOW_LOADED_IMAGES: 'Show the images (DLLs) currently loaded',
-  COMMAND_SHOW_IMAGE_INFORMATION: 'Show information on a particular loaded image'
+  COMMAND_SHOW_IMAGE_INFORMATION: 'Show information on a particular loaded image',
+  COMMAND_SHOW_DISASSEMBLY: 'Show disassembly',
+  COMMAND_SHOW_THREAD_CONTEXT: 'Show the context of the current thread'
 }
 
 #
@@ -252,7 +262,6 @@ class CommandHandler():
           outstr += '  0x%08x: %s\n' % (k, v)
         main_ui.push_output(outstr)
         return
-
       elif command == COMMAND_SHOW_IMAGE_INFORMATION:
         # analyze the DLL in memory
         if len(args) != 1:
@@ -266,6 +275,18 @@ class CommandHandler():
             main_ui.push_output(outstr)
             return
         main_ui.set_short_message('Image %s not found in loaded images.' % image_name)
+        return
+      elif command == COMMAND_SHOW_DISASSEMBLY:
+        main_ui.set_short_message('Under Construction')
+        #f = winutils.MemoryMetaFile(process_info.hProcess, k)
+        #main_ui.push_output(winutils.disassemble(f))
+        return
+      elif command == COMMAND_SHOW_THREAD_CONTEXT:
+        context = winapi.WOW64_CONTEXT()
+        context.ContextFlags = winapi.WOW64_CONTEXT_ALL
+        if not winapi.Wow64GetThreadContext(process_info.hThread, ctypes.pointer(context)):
+          raise Exception('GetThreadContext failed')
+        main_ui.push_output(winutils.wow64_context_to_str(context))
         return
 
     raise Exception('unhandled command / state (%s / %s)' % (command, current_state))

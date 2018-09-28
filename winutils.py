@@ -809,7 +809,7 @@ def read_into_structure(f, structure):
 
 class MemoryMetaFile():
   '''
-  A metafile class that access Windows memory as it if were a Python file.
+  A metafile class that access Windows memory as it if were a Python file object.
   '''
 
   def __init__(self, process_handle, base_address):
@@ -926,14 +926,23 @@ def analyze_pe_file(f): # code for experimentation
       name += chr(b)
     physical_address = section_header.Misc.PhysicalAddress
     virtual_address = section_header.VirtualAddress
-    rv += f'  {name} Physical Addr: 0x{physical_address:08x}' \
-      f' Virtual Addr: 0x{virtual_address:08x}\n'
+    rv += f'  {name}' \
+      f'    Physical Addr: 0x{physical_address:08x}\n' \
+      f'    Virtual Addr: 0x{virtual_address:08x}\n' \
+      f'    SizeOfRawData: {section_header.SizeOfRawData}\n'
 
   return rv
 
 #
 # other utilities (to categorize)
 #
+
+def disassemble(f):
+  '''
+  It's still TBD how this will look.
+  '''
+  
+  return 'Under Construction'
 
 def create_process(binary):
   '''
