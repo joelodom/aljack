@@ -1,8 +1,15 @@
-#
-# Windows API wrapper by Joel Odom.  Does not contain everything, so add as needed.
-#
-# Comments that resemble C code are probably snippets from Windows header files.
-#
+'''
+Windows API wrapper by Joel Odom.  Does not contain everything, so add as needed.
+
+Copyright (c) 2016-2018 by Joel Odom, Marietta, GA
+
+This work is licensed under the Creative Commons Attribution-ShareAlike 4.0
+International License. To view a copy of this license,
+visit http://creativecommons.org/licenses/by-sa/4.0/.
+
+Comments that resemble C code are probably snippets from Windows header files,
+and may be owned by another copyright holder.
+'''
 
 import sys
 import ctypes
