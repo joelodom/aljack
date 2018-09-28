@@ -904,8 +904,8 @@ def read_section_header(f):
   section_header = IMAGE_SECTION_HEADER()
   read_into_structure(f, section_header)
 
-
   return section_header
+
 
 def analyze_pe_file(f): # code for experimentation
   # read the DOS header
@@ -924,7 +924,10 @@ def analyze_pe_file(f): # code for experimentation
     name = ''
     for b in section_header.Name:
       name += chr(b)
-    rv += '  %s\n' % name
+    physical_address = section_header.Misc.PhysicalAddress
+    virtual_address = section_header.VirtualAddress
+    rv += f'  {name} Physical Addr: 0x{physical_address:08x}' \
+      f' Virtual Addr: 0x{virtual_address:08x}\n'
 
   return rv
 

@@ -142,13 +142,16 @@ def get_command_help_string(command):
   command_and_alias = command
   for (alias, original) in ALIASES.items():
     if original == command:
+      # if there is an alias, show it
       command_and_alias = '%s (%s)' % (original, alias)
-  return '%s %s' % (command_and_alias.ljust(16), HELP_STRINGS[command])
+      break
+  return '%s %s' % (command_and_alias.ljust(10), HELP_STRINGS[command])
 
 def get_help_for_state(state):
-  help_text = 'Current state is %s.  Allowed commands:\n' % current_state
+  help_text = f'Current state is {current_state}.  Allowed commands:\n'
   for command in ALLOWED_COMMANDS[state]:
-    help_text += '  %s\n' % get_command_help_string(command)
+    help_string = get_command_help_string(command)
+    help_text += f'  {help_string}\n'
   return help_text
 
 def get_command_from_possible_alias(possible_alias):
@@ -173,7 +176,8 @@ class CommandHandler():
 
     main_ui.set_short_message('')
 
-    command, args = full_command[0], full_command[1:]
+    command_words = full_command.split() # splits into words
+    command, args = command_words[0], command_words[1:]
 
     # substitute a command for any alias
     command = get_command_from_possible_alias(command)
@@ -270,7 +274,7 @@ class CommandHandler():
 command_handler = CommandHandler()
 main_ui = ui.LegacyUI()
 
-while True:
+while True: # main loop
 
   main_ui.set_prompt(current_state)
   command = main_ui.prompt() # blocks for input

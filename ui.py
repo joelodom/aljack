@@ -111,9 +111,9 @@ class TextOutputBox():
 
     return self.lines[i]
 
-OUTPUT_HEIGHTS = 60
-INPUT_HEIGHT = 10 # must be at least 3
-TOTAL_WIDTH = 79*3
+OUTPUT_HEIGHTS = 59
+INPUT_HEIGHT = 7 # must be at least 3
+TOTAL_WIDTH = 70*3
 
 class LegacyUI():
 
