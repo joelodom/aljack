@@ -13,6 +13,7 @@ import binascii
 import utils
 import unittest
 from winapi import *
+import pymsasid3.pymsasid as pyms
 
 #
 # image file header utilities
@@ -941,10 +942,18 @@ def disassemble(f):
   '''
   It's still TBD how this will look.
   '''
-  
-  b = read_exact_number_of_bytes(f, 1)
 
-  return f'Under Construction {b}'
+  source = read_exact_number_of_bytes(f, 9) # TODO: don't read past segment
+  source = source.decode('latin-1')
+
+  rv = ''
+  pos = 0
+  while pos < len(source):
+    inst = pyms.Pymsasid(hook=pyms.BufferHook, source = source).disassemble(pos)
+    rv += f'{str(inst)}\n'
+    pos += inst.size
+
+  return rv
 
 def create_process(binary):
   '''
