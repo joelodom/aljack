@@ -823,7 +823,7 @@ class MemoryMetaFile():
       self.process_handle, self.base_address + self.position, buf, num_bytes, nullptr)
     if not rv or len(buf) != num_bytes:
         print('*** ReadProcessMemory failed ***')
-        show_memory_information(self.process_handle, pointer)
+        #show_memory_information(self.process_handle, pointer)
     self.position += num_bytes
     return bytes(buf)
 
@@ -942,7 +942,9 @@ def disassemble(f):
   It's still TBD how this will look.
   '''
   
-  return 'Under Construction'
+  b = read_exact_number_of_bytes(f, 1)
+
+  return f'Under Construction {b}'
 
 def create_process(binary):
   '''

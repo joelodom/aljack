@@ -277,9 +277,14 @@ class CommandHandler():
         main_ui.set_short_message('Image %s not found in loaded images.' % image_name)
         return
       elif command == COMMAND_SHOW_DISASSEMBLY:
-        main_ui.set_short_message('Under Construction')
-        #f = winutils.MemoryMetaFile(process_info.hProcess, k)
-        #main_ui.push_output(winutils.disassemble(f))
+        if len(args) != 1 or len(args[0]) < 3:
+          main_ui.set_short_message(
+            f'{COMMAND_SHOW_DISASSEMBLY} expects a memory address (in hex with 0x)')
+          return
+        assert(args[0][:2] == '0x')
+        f = winutils.MemoryMetaFile(process_info.hProcess, int(args[0][2:], 16))
+        output = utils.indent_string(winutils.disassemble(f), '  ')
+        main_ui.push_output(output)
         return
       elif command == COMMAND_SHOW_THREAD_CONTEXT:
         context = winapi.WOW64_CONTEXT()
