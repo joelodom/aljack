@@ -943,7 +943,7 @@ def disassemble(f):
   It's still TBD how this will look.
   '''
 
-  source = read_exact_number_of_bytes(f, 9) # TODO: don't read past segment
+  source = read_exact_number_of_bytes(f, 48) # TODO: don't read past segment
   source = source.decode('latin-1')
 
   rv = ''
